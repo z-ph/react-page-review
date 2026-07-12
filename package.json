@@ -1,6 +1,6 @@
 {
   "name": "react-page-review",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A React page review tool for collecting UI feedback with element selection and viewport boxing.",
   "type": "module",
   "main": "./dist/react-page-review.umd.cjs",

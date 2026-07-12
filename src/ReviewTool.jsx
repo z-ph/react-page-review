@@ -10,6 +10,7 @@ import {
   captureBox,
   uploadScreenshot
 } from './screenshot.js'
+import { getComponentTree, getNodeInfo } from './inspector.js'
 
 export default function ReviewTool({
   active = false,
@@ -18,6 +19,7 @@ export default function ReviewTool({
   storageKey = 'page-reviews',
   imageUpload,
   enableZipExport = true,
+  enableComponentTree = true,
   onActiveChange,
   onAdd,
   onUpdate,
@@ -46,10 +48,13 @@ export default function ReviewTool({
   const [mode, setMode] = useState('element')
   const [formVisible, setFormVisible] = useState(false)
   const [listVisible, setListVisible] = useState(false)
+  const [treeVisible, setTreeVisible] = useState(false)
 
   const [hoveredRect, setHoveredRect] = useState(null)
   const [hoveredTag, setHoveredTag] = useState('')
   const [selectedElement, setSelectedElement] = useState(null)
+  const [treeHoverRect, setTreeHoverRect] = useState(null)
+  const [componentTree, setComponentTree] = useState(null)
 
   const [dragRect, setDragRect] = useState(null)
   const isDragging = useRef(false)
@@ -72,7 +77,9 @@ export default function ReviewTool({
     scroll: { x: 0, y: 0 },
     pagePath: '',
     pageUrl: '',
-    pageName: ''
+    pageName: '',
+    componentTree: null,
+    aria: null
   })
 
   const [selectedScreenshots, setSelectedScreenshots] = useState([])
@@ -174,6 +181,7 @@ export default function ReviewTool({
 
   const openForm = useCallback((type, viewportRect = null) => {
     const env = captureEnv()
+    const nodeInfo = selectedElement?.el ? getNodeInfo(selectedElement.el) : null
     setForm({
       type,
       title: '',
@@ -187,15 +195,19 @@ export default function ReviewTool({
       scroll: env.scroll,
       pagePath: env.pagePath,
       pageUrl: env.pageUrl,
-      pageName: env.pageName
+      pageName: env.pageName,
+      componentTree,
+      aria: nodeInfo?.aria || null
     })
     setSelectedScreenshots([])
     setFormVisible(true)
-  }, [captureEnv, selectedElement])
+  }, [captureEnv, selectedElement, componentTree])
 
   const resetForm = useCallback(() => {
     setSelectedElement(null)
     setDragRect(null)
+    setTreeHoverRect(null)
+    setComponentTree(null)
     setSelectedScreenshots([])
     setForm({
       type: 'element',
@@ -210,7 +222,9 @@ export default function ReviewTool({
       scroll: { x: 0, y: 0 },
       pagePath: '',
       pageUrl: '',
-      pageName: ''
+      pageName: '',
+      componentTree: null,
+      aria: null
     })
   }, [])
 
@@ -232,7 +246,9 @@ export default function ReviewTool({
       pageUrl: form.pageUrl,
       pageName: form.pageName,
       status: 'open',
-      screenshots
+      screenshots,
+      componentTree: form.componentTree,
+      aria: form.aria
     })
     setFormVisible(false)
     onAdd?.(record)
@@ -283,6 +299,36 @@ export default function ReviewTool({
     onExport?.({ format: 'zip' })
   }, [exportToZIP, onExport])
 
+  const onTreeNodeHover = useCallback((node) => {
+    if (!node.rect) {
+      setTreeHoverRect(null)
+      return
+    }
+    setTreeHoverRect(node.rect)
+  }, [])
+
+  const onTreeNodeSelect = useCallback((node) => {
+    if (!node.selector) return
+    const el = document.querySelector(node.selector)
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    setSelectedElement({
+      el,
+      selector: node.selector,
+      tag: el.tagName.toLowerCase(),
+      text: el.innerText?.slice(0, 40) || '',
+      rect: {
+        x: rect.left + window.scrollX,
+        y: rect.top + window.scrollY,
+        width: rect.width,
+        height: rect.height
+      }
+    })
+    setComponentTree(getComponentTree(el))
+    setTreeVisible(false)
+    openForm('element')
+  }, [openForm])
+
   const onMouseMove = useCallback((e) => {
     if (isDraggingToolbar.current) return
     if (mode !== 'element' || formVisible || isDragging.current) return
@@ -324,6 +370,7 @@ export default function ReviewTool({
         height: rect.height
       }
     })
+    setComponentTree(getComponentTree(target))
     openForm('element')
   }, [mode, formVisible, getSafeTarget, getElementSelector, openForm])
 
@@ -417,6 +464,7 @@ export default function ReviewTool({
       resetForm()
       setHoveredRect(null)
       setListVisible(false)
+      setTreeVisible(false)
     }
   }, [active, resetForm])
 
@@ -443,6 +491,7 @@ export default function ReviewTool({
           </div>
         </div>
         <div className="toolbar-right">
+          {enableComponentTree && <button onClick={() => setTreeVisible(true)}>组件树</button>}
           <button className="badge-btn" onClick={() => setListVisible(true)}>
             评审列表 <span className="badge">{pageReviews.length}</span>
           </button>
@@ -468,6 +517,10 @@ export default function ReviewTool({
         <div className="highlight-box selected-box" style={highlightStyle(selectedElement.rect)}>
           <span className="highlight-label">已选：{selectedElement.tag}</span>
         </div>
+      )}
+
+      {treeHoverRect && (
+        <div className="highlight-box tree-hover-box" style={highlightStyle(treeHoverRect)} />
       )}
 
       {effectiveBoxRect && (
@@ -563,6 +616,64 @@ export default function ReviewTool({
         </div>
       )}
 
+      {treeVisible && (
+        <>
+          <div className="drawer-backdrop" onClick={() => setTreeVisible(false)} />
+          <div className="drawer">
+            <div className="drawer-header">
+              <span>组件树检查器</span>
+              <button className="close" onClick={() => setTreeVisible(false)}>×</button>
+            </div>
+            <div className="drawer-body">
+              {!componentTree ? (
+                <div className="empty">先选择一个元素以查看组件树</div>
+              ) : (
+                <div className="tree-panel">
+                  {componentTree.framework && componentTree.framework.length > 0 && (
+                    <div className="tree-section">
+                      <h4>框架组件树</h4>
+                      <div className="tree-list">
+                        {componentTree.framework.map((node, idx) => (
+                          <div
+                            key={'fw-' + idx}
+                            className="tree-node"
+                            onMouseEnter={() => onTreeNodeHover(node)}
+                            onMouseLeave={() => setTreeHoverRect(null)}
+                            onClick={() => onTreeNodeSelect(node)}
+                          >
+                            <span className="node-name">{node.componentName}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="tree-section">
+                    <h4>DOM 树</h4>
+                    <div className="tree-list">
+                      {componentTree.dom.map((node, idx) => (
+                        <div
+                          key={'dom-' + idx}
+                          className="tree-node"
+                          style={{ paddingLeft: idx * 12 }}
+                          onMouseEnter={() => onTreeNodeHover(node)}
+                          onMouseLeave={() => setTreeHoverRect(null)}
+                          onClick={() => onTreeNodeSelect(node)}
+                        >
+                          <span className="node-tag">{node.tag}</span>
+                          {node.id && <span className="node-id">#{node.id}</span>}
+                          {node.aria?.role && <span className="node-aria">role={node.aria.role}</span>}
+                          {node.testId && <span className="node-testid">testid={node.testId}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
       {listVisible && (
         <>
           <div className="drawer-backdrop" onClick={() => setListVisible(false)} />
@@ -589,6 +700,7 @@ export default function ReviewTool({
                         <div className="review-item-tags">
                           <span className={`tag ${severityType(item.severity)}`}>{severityText(item.severity)}</span>
                           <span className="tag info">{item.type === 'element' ? '元素' : '视图'}</span>
+                          {item.componentTree?.dom?.length > 0 && <span className="tag success">树</span>}
                         </div>
                       </div>
                       <p className="review-item-target">

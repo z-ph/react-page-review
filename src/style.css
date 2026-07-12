@@ -192,6 +192,11 @@ button.danger-text {
   background: rgba(245, 108, 108, 0.12);
 }
 
+.tree-hover-box {
+  border-color: #e6a23c;
+  background: rgba(230, 162, 60, 0.15);
+}
+
 .highlight-label {
   position: absolute;
   top: -22px;
@@ -321,6 +326,11 @@ button.danger-text {
   color: #f56c6c;
 }
 
+.tag.success {
+  background: #f0f9eb;
+  color: #67c23a;
+}
+
 .confirm-modal {
   width: 360px;
 }
@@ -366,6 +376,62 @@ button.danger-text {
   flex: 1;
   padding: 16px;
   overflow: auto;
+}
+
+.tree-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tree-section h4 {
+  margin: 0 0 10px;
+  color: #303133;
+  font-size: 14px;
+}
+
+.tree-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tree-node {
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  transition: background 0.15s;
+}
+
+.tree-node:hover {
+  background: #f5f7fa;
+}
+
+.node-tag {
+  color: #409eff;
+  font-weight: bold;
+}
+
+.node-id {
+  color: #67c23a;
+  margin-left: 6px;
+}
+
+.node-aria {
+  color: #e6a23c;
+  margin-left: 6px;
+}
+
+.node-testid {
+  color: #909399;
+  margin-left: 6px;
+}
+
+.node-name {
+  color: #606266;
+  font-weight: bold;
 }
 
 .review-list-actions {
