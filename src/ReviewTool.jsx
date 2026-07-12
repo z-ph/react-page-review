@@ -79,7 +79,8 @@ export default function ReviewTool({
     pageUrl: '',
     pageName: '',
     componentTree: null,
-    aria: null
+    aria: null,
+    locators: null
   })
 
   const [selectedScreenshots, setSelectedScreenshots] = useState([])
@@ -179,9 +180,19 @@ export default function ReviewTool({
     return screenshots
   }, [selectedScreenshots, selectedElement, form.viewportRect, imageUpload])
 
+  const buildLocators = useCallback((nodeInfo) => {
+    const locators = {}
+    if (nodeInfo.selector) locators.cssSelector = nodeInfo.selector
+    if (nodeInfo.xpath) locators.xpath = nodeInfo.xpath
+    if (nodeInfo.aria && Object.keys(nodeInfo.aria).length) locators.aria = nodeInfo.aria
+    if (nodeInfo.testId) locators.testId = nodeInfo.testId
+    return Object.keys(locators).length ? locators : null
+  }, [])
+
   const openForm = useCallback((type, viewportRect = null) => {
     const env = captureEnv()
     const nodeInfo = selectedElement?.el ? getNodeInfo(selectedElement.el) : null
+    const locators = nodeInfo ? buildLocators(nodeInfo) : null
     setForm({
       type,
       title: '',
@@ -197,11 +208,12 @@ export default function ReviewTool({
       pageUrl: env.pageUrl,
       pageName: env.pageName,
       componentTree,
-      aria: nodeInfo?.aria || null
+      aria: nodeInfo?.aria || null,
+      locators
     })
     setSelectedScreenshots([])
     setFormVisible(true)
-  }, [captureEnv, selectedElement, componentTree])
+  }, [captureEnv, selectedElement, componentTree, buildLocators])
 
   const resetForm = useCallback(() => {
     setSelectedElement(null)
@@ -224,7 +236,8 @@ export default function ReviewTool({
       pageUrl: '',
       pageName: '',
       componentTree: null,
-      aria: null
+      aria: null,
+      locators: null
     })
   }, [])
 
@@ -248,7 +261,8 @@ export default function ReviewTool({
       status: 'open',
       screenshots,
       componentTree: form.componentTree,
-      aria: form.aria
+      aria: form.aria,
+      locators: form.locators
     })
     setFormVisible(false)
     onAdd?.(record)
