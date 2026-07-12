@@ -4,7 +4,8 @@ export const SCREENSHOT_TYPES = {
   ELEMENT: 'element',
   VIEWPORT: 'viewport',
   FULL_PAGE: 'fullpage',
-  BOX: 'box'
+  BOX: 'box',
+  TARGETS: 'targets'
 }
 
 export function generateScreenshotFilename(type) {
