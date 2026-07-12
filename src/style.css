@@ -77,6 +77,21 @@
   cursor: pointer;
 }
 
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #606266;
+}
+
 .badge-btn {
   position: relative;
   padding: 6px 12px;
@@ -304,6 +319,10 @@ button.danger-text {
 .tag.danger {
   background: #fef0f0;
   color: #f56c6c;
+}
+
+.confirm-modal {
+  width: 360px;
 }
 
 .drawer-backdrop {

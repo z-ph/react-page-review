@@ -1,12 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { usePageReview } from './useReview.js'
+import {
+  SCREENSHOT_TYPES,
+  generateScreenshotFilename,
+  captureElement,
+  captureViewport,
+  captureFullPage,
+  captureBox,
+  uploadScreenshot
+} from './screenshot.js'
 
 export default function ReviewTool({
   active = false,
   pagePath = '',
   pageName = '',
   storageKey = 'page-reviews',
+  imageUpload,
+  enableZipExport = true,
   onActiveChange,
   onAdd,
   onUpdate,
@@ -26,7 +37,8 @@ export default function ReviewTool({
     deleteReview,
     clearPageReviews,
     exportToJSON,
-    exportToMarkdown
+    exportToMarkdown,
+    exportToZIP
   } = usePageReview({ storageKey, defaultPagePath: () => resolvedPagePath })
 
   const pageReviews = useMemo(() => getPageReviews(resolvedPagePath), [getPageReviews, resolvedPagePath, reviews])
@@ -62,6 +74,9 @@ export default function ReviewTool({
     pageUrl: '',
     pageName: ''
   })
+
+  const [selectedScreenshots, setSelectedScreenshots] = useState([])
+  const [confirm, setConfirm] = useState(null)
 
   const canSubmit = form.title.trim() && form.suggestion.trim()
 
@@ -111,6 +126,52 @@ export default function ReviewTool({
     return target
   }, [])
 
+  const availableScreenshotOptions = useMemo(() => {
+    if (form.type === 'element') {
+      return [
+        { value: SCREENSHOT_TYPES.ELEMENT, label: '选中元素' },
+        { value: SCREENSHOT_TYPES.VIEWPORT, label: '当前视口' },
+        { value: SCREENSHOT_TYPES.FULL_PAGE, label: '完整页面' }
+      ]
+    }
+    return [
+      { value: SCREENSHOT_TYPES.BOX, label: '框选区域' },
+      { value: SCREENSHOT_TYPES.VIEWPORT, label: '当前视口' },
+      { value: SCREENSHOT_TYPES.FULL_PAGE, label: '完整页面' }
+    ]
+  }, [form.type])
+
+  const captureScreenshots = useCallback(async () => {
+    const screenshots = []
+    for (const type of selectedScreenshots) {
+      let dataUrl = null
+      if (type === SCREENSHOT_TYPES.ELEMENT && selectedElement?.el) {
+        dataUrl = await captureElement(selectedElement.el)
+      } else if (type === SCREENSHOT_TYPES.BOX && form.viewportRect) {
+        dataUrl = await captureBox(form.viewportRect)
+      } else if (type === SCREENSHOT_TYPES.VIEWPORT) {
+        dataUrl = await captureViewport()
+      } else if (type === SCREENSHOT_TYPES.FULL_PAGE) {
+        dataUrl = await captureFullPage()
+      }
+
+      if (dataUrl) {
+        const filename = generateScreenshotFilename(type)
+        let url = null
+        if (imageUpload) {
+          url = await uploadScreenshot(dataUrl, filename, imageUpload)
+        }
+        screenshots.push({
+          type,
+          filename,
+          data: url ? undefined : dataUrl,
+          url: url || undefined
+        })
+      }
+    }
+    return screenshots
+  }, [selectedScreenshots, selectedElement, form.viewportRect, imageUpload])
+
   const openForm = useCallback((type, viewportRect = null) => {
     const env = captureEnv()
     setForm({
@@ -128,12 +189,14 @@ export default function ReviewTool({
       pageUrl: env.pageUrl,
       pageName: env.pageName
     })
+    setSelectedScreenshots([])
     setFormVisible(true)
   }, [captureEnv, selectedElement])
 
   const resetForm = useCallback(() => {
     setSelectedElement(null)
     setDragRect(null)
+    setSelectedScreenshots([])
     setForm({
       type: 'element',
       title: '',
@@ -151,8 +214,9 @@ export default function ReviewTool({
     })
   }, [])
 
-  const submitReview = useCallback(() => {
+  const submitReview = useCallback(async () => {
     if (!canSubmit) return
+    const screenshots = await captureScreenshots()
     const record = addReview({
       type: form.type,
       title: form.title.trim(),
@@ -167,11 +231,12 @@ export default function ReviewTool({
       pagePath: form.pagePath,
       pageUrl: form.pageUrl,
       pageName: form.pageName,
-      status: 'open'
+      status: 'open',
+      screenshots
     })
     setFormVisible(false)
     onAdd?.(record)
-  }, [canSubmit, form, addReview, onAdd])
+  }, [canSubmit, captureScreenshots, form, addReview, onAdd])
 
   const resolve = useCallback((id) => {
     updateReview(id, { status: 'resolved' })
@@ -179,16 +244,28 @@ export default function ReviewTool({
   }, [updateReview, onUpdate])
 
   const remove = useCallback((id) => {
-    if (typeof window !== 'undefined' && !window.confirm('确定删除这条评审意见吗？')) return
-    deleteReview(id)
-    onDelete?.({ id })
+    setConfirm({
+      title: '删除确认',
+      message: '确定删除这条评审意见吗？',
+      onConfirm: () => {
+        deleteReview(id)
+        onDelete?.({ id })
+        setConfirm(null)
+      }
+    })
   }, [deleteReview, onDelete])
 
   const clearPage = useCallback(() => {
     if (pageReviews.length === 0) return
-    if (typeof window !== 'undefined' && !window.confirm('确定清空当前页面的所有评审意见吗？')) return
-    clearPageReviews(resolvedPagePath)
-    onClear?.({ pagePath: resolvedPagePath })
+    setConfirm({
+      title: '清空确认',
+      message: '确定清空当前页面的所有评审意见吗？',
+      onConfirm: () => {
+        clearPageReviews(resolvedPagePath)
+        onClear?.({ pagePath: resolvedPagePath })
+        setConfirm(null)
+      }
+    })
   }, [pageReviews.length, clearPageReviews, resolvedPagePath, onClear])
 
   const handleExportJSON = useCallback(() => {
@@ -200,6 +277,11 @@ export default function ReviewTool({
     exportToMarkdown()
     onExport?.({ format: 'markdown' })
   }, [exportToMarkdown, onExport])
+
+  const handleExportZIP = useCallback(async () => {
+    await exportToZIP()
+    onExport?.({ format: 'zip' })
+  }, [exportToZIP, onExport])
 
   const onMouseMove = useCallback((e) => {
     if (isDraggingToolbar.current) return
@@ -344,6 +426,8 @@ export default function ReviewTool({
     transform: `translate(calc(-50% + ${toolbarPos.x}px), ${toolbarPos.y}px)`
   }
 
+  const effectiveBoxRect = dragRect || (form.type === 'viewport' && formVisible ? form.viewportRect : null)
+
   return createPortal(
     <div className="review-overlay" onClick={(e) => e.stopPropagation()}>
       <div
@@ -367,6 +451,7 @@ export default function ReviewTool({
             <div className="dropdown-menu">
               <div onClick={handleExportMarkdown}>导出为 Markdown</div>
               <div onClick={handleExportJSON}>导出为 JSON</div>
+              {enableZipExport && <div onClick={handleExportZIP}>导出为 ZIP</div>}
             </div>
           </div>
           <button className="danger" onClick={close}>退出评审</button>
@@ -379,14 +464,14 @@ export default function ReviewTool({
         </div>
       )}
 
-      {selectedElement && mode === 'element' && !formVisible && (
+      {selectedElement && mode === 'element' && (
         <div className="highlight-box selected-box" style={highlightStyle(selectedElement.rect)}>
           <span className="highlight-label">已选：{selectedElement.tag}</span>
         </div>
       )}
 
-      {dragRect && (
-        <div className="drag-rect" style={dragRectStyle(dragRect)} />
+      {effectiveBoxRect && (
+        <div className="drag-rect" style={dragRectStyle(effectiveBoxRect)} />
       )}
 
       {formVisible && (
@@ -412,6 +497,27 @@ export default function ReviewTool({
               <div className="form-row">
                 <label>滚动位置</label>
                 <span className="text-muted">x={form.scroll?.x}, y={form.scroll?.y}</span>
+              </div>
+              <div className="form-row">
+                <label>截图</label>
+                <div className="checkbox-group">
+                  {availableScreenshotOptions.map(opt => (
+                    <label key={opt.value} className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        value={opt.value}
+                        checked={selectedScreenshots.includes(opt.value)}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setSelectedScreenshots(prev =>
+                            prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
+                          )
+                        }}
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
               </div>
               <div className="form-row">
                 <label>标题 <span className="required">*</span></label>
@@ -469,6 +575,7 @@ export default function ReviewTool({
               <div className="review-list-actions">
                 <button className="primary" onClick={handleExportMarkdown}>导出 Markdown</button>
                 <button onClick={handleExportJSON}>导出 JSON</button>
+                {enableZipExport && <button onClick={handleExportZIP}>导出 ZIP</button>}
                 <button className="danger-text" onClick={clearPage}>清空本页</button>
               </div>
               {pageReviews.length === 0 ? (
@@ -502,6 +609,19 @@ export default function ReviewTool({
             </div>
           </div>
         </>
+      )}
+
+      {confirm && (
+        <div className="modal-backdrop" onClick={() => setConfirm(null)}>
+          <div className="modal confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">{confirm.title}</div>
+            <div className="modal-body">{confirm.message}</div>
+            <div className="modal-footer">
+              <button onClick={() => setConfirm(null)}>取消</button>
+              <button className="danger" onClick={confirm.onConfirm}>确定</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>,
     document.body
