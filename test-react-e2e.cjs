@@ -136,8 +136,11 @@ async function waitBlob(page, minCount) {
   const menuStillOpen = await page.locator('.ant-dropdown-menu-item').first().isVisible()
   check('「更多」下拉点击触发、移开不消失', menuStillOpen)
 
-  // 12. 导出 JSON
-  await page.locator('.ant-dropdown-menu-item', { hasText: '导出 JSON' }).click()
+  // 12. 导出 JSON（字节校验 + 真实下载事件校验：capture 监听器不能 preventDefault 下载）
+  const [jsonDownload] = await Promise.all([
+    page.waitForEvent('download', { timeout: 10000 }).catch(() => null),
+    page.locator('.ant-dropdown-menu-item', { hasText: '导出 JSON' }).click()
+  ])
   const jsonBlob = await waitBlob(page, 1)
   const jsonText = Buffer.from(jsonBlob.bytes).toString('utf8')
   let jsonOk = false
@@ -147,6 +150,7 @@ async function waitBlob(page, minCount) {
     jsonOk = JSON.stringify(list).includes('E2E 测试标题')
   } catch {}
   check('导出 JSON 可下载且内容正确', jsonOk, `${jsonBlob.bytes.length} bytes`)
+  check('导出触发真实浏览器下载事件', !!jsonDownload, jsonDownload?.suggestedFilename() || '未触发')
 
   // 13. 导出 Markdown
   await clickMoreItem(page, '导出 Markdown')
@@ -169,7 +173,9 @@ async function waitBlob(page, minCount) {
   await page.waitForSelector('.ant-drawer-content', { state: 'hidden' }).catch(() => {})
   await page.waitForTimeout(400)
 
-  // 16. 组件树抽屉
+  // 16. 组件树抽屉（需先有选中元素，保存评审后选中已被清空，重新选一个）
+  await page.click('.test-card >> nth=1')
+  await page.waitForSelector('.rpr-selected-box', { state: 'visible' })
   await clickMoreItem(page, '组件树')
   await page.waitForSelector('.ant-drawer', { state: 'visible' })
   const treeText = await page.locator('.ant-drawer').first().innerText()

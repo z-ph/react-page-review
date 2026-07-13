@@ -46,6 +46,8 @@ export function useElementSelection({ active, mode, onIgnoreTarget }) {
     if (!isEnabled) return
     const target = getSafeTarget(e)
     if (!target) return
+    // 不拦截下载链接：导出通过 a[download] 触发，preventDefault 会取消下载
+    if (target.closest?.('a[download]')) return
     e.preventDefault()
     e.stopPropagation()
 
