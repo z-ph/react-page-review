@@ -491,7 +491,7 @@ Check the render method of \`` + k + "`.";
     function ye(k) {
       return "";
     }
-    var se = {};
+    var ae = {};
     function _e(k) {
       {
         var X = Yt();
@@ -504,15 +504,15 @@ Check the top-level render call using <` + tt + ">.");
         return X;
       }
     }
-    function ae(k, X) {
+    function re(k, X) {
       {
         if (!k._store || k._store.validated || k.key != null)
           return;
         k._store.validated = !0;
         var tt = _e(X);
-        if (se[tt])
+        if (ae[tt])
           return;
-        se[tt] = !0;
+        ae[tt] = !0;
         var lt = "";
         k && k._owner && k._owner !== Wt.current && (lt = " It was passed a child from " + F(k._owner.type) + "."), Ft(k), w('Each child in a list should have a unique "key" prop.%s%s See https://reactjs.org/link/warning-keys for more information.', tt, lt), Ft(null);
       }
@@ -524,7 +524,7 @@ Check the top-level render call using <` + tt + ">.");
         if (O(k))
           for (var tt = 0; tt < k.length; tt++) {
             var lt = k[tt];
-            Lt(lt) && ae(lt, X);
+            Lt(lt) && re(lt, X);
           }
         else if (Lt(k))
           k._store && (k._store.validated = !0);
@@ -532,7 +532,7 @@ Check the top-level render call using <` + tt + ">.");
           var vt = m(k);
           if (typeof vt == "function" && vt !== k.entries)
             for (var bt = vt.call(k), mt; !(mt = bt.next()).done; )
-              Lt(mt.value) && ae(mt.value, X);
+              Lt(mt.value) && re(mt.value, X);
         }
       }
     }
@@ -574,7 +574,7 @@ Check the top-level render call using <` + tt + ">.");
       }
     }
     var fe = {};
-    function re(k, X, tt, lt, vt, bt) {
+    function ne(k, X, tt, lt, vt, bt) {
       {
         var mt = Z(k);
         if (!mt) {
@@ -619,10 +619,10 @@ React keys must be passed directly to JSX without using spread:
       }
     }
     function Oe(k, X, tt) {
-      return re(k, X, tt, !0);
+      return ne(k, X, tt, !0);
     }
     function xe(k, X, tt) {
-      return re(k, X, tt, !1);
+      return ne(k, X, tt, !1);
     }
     var ze = xe, je = Oe;
     ve.Fragment = f, ve.jsx = ze, ve.jsxs = je;
@@ -3134,7 +3134,7 @@ const Yr = /* @__PURE__ */ (() => {
   );
   return () => (t += 1, `u${o()}${t}`);
 })();
-function ie(t) {
+function se(t) {
   const o = [];
   for (let r = 0, f = t.length; r < f; r++)
     o.push(t[r]);
@@ -3142,7 +3142,7 @@ function ie(t) {
 }
 let ue = null;
 function gr(t = {}) {
-  return ue || (t.includeStyleProperties ? (ue = t.includeStyleProperties, ue) : (ue = ie(window.getComputedStyle(document.documentElement)), ue));
+  return ue || (t.includeStyleProperties ? (ue = t.includeStyleProperties, ue) : (ue = se(window.getComputedStyle(document.documentElement)), ue));
 }
 function Ce(t, o) {
   const f = (t.ownerDocument.defaultView || window).getComputedStyle(t).getPropertyValue(o);
@@ -3325,7 +3325,7 @@ async function pn(t, o, r) {
   if (yr(o))
     return o;
   let n = [];
-  return dn(t) && t.assignedNodes ? n = ie(t.assignedNodes()) : Bt(t, HTMLIFrameElement) && (!((f = t.contentDocument) === null || f === void 0) && f.body) ? n = ie(t.contentDocument.body.childNodes) : n = ie(((c = t.shadowRoot) !== null && c !== void 0 ? c : t).childNodes), n.length === 0 || Bt(t, HTMLVideoElement) || await n.reduce((a, i) => a.then(() => Ae(i, r)).then((l) => {
+  return dn(t) && t.assignedNodes ? n = se(t.assignedNodes()) : Bt(t, HTMLIFrameElement) && (!((f = t.contentDocument) === null || f === void 0) && f.body) ? n = se(t.contentDocument.body.childNodes) : n = se(((c = t.shadowRoot) !== null && c !== void 0 ? c : t).childNodes), n.length === 0 || Bt(t, HTMLVideoElement) || await n.reduce((a, i) => a.then(() => Ae(i, r)).then((l) => {
     l && o.appendChild(l);
   }), Promise.resolve()), o;
 }
@@ -3446,7 +3446,7 @@ async function Rn(t, o) {
   });
 }
 async function Tn(t, o) {
-  const f = ie(t.childNodes).map((c) => kr(c, o));
+  const f = se(t.childNodes).map((c) => kr(c, o));
   await Promise.all(f).then(() => t);
 }
 async function kr(t, o) {
@@ -3507,7 +3507,7 @@ async function On(t, o) {
   return t.forEach((c) => {
     if ("cssRules" in c)
       try {
-        ie(c.cssRules || []).forEach((n, a) => {
+        se(c.cssRules || []).forEach((n, a) => {
           if (n.type === CSSRule.IMPORT_RULE) {
             let i = a + 1;
             const l = n.href, _ = cr(l).then((x) => ur(x, o)).then((x) => hr(x).forEach((b) => {
@@ -3536,7 +3536,7 @@ async function On(t, o) {
   }), Promise.all(f).then(() => (t.forEach((c) => {
     if ("cssRules" in c)
       try {
-        ie(c.cssRules || []).forEach((n) => {
+        se(c.cssRules || []).forEach((n) => {
           r.push(n);
         });
       } catch (n) {
@@ -3550,7 +3550,7 @@ function zn(t) {
 async function jn(t, o) {
   if (t.ownerDocument == null)
     throw new Error("Provided element is not within a Document");
-  const r = ie(t.ownerDocument.styleSheets), f = await On(r, o);
+  const r = se(t.ownerDocument.styleSheets), f = await On(r, o);
   return zn(f);
 }
 function Sr(t) {
@@ -3915,7 +3915,7 @@ function ai({
     pagePath: h,
     pageUrl: window.location.href,
     pageName: r || h
-  }), [h, r]), se = ot((C) => C ? {
+  }), [h, r]), ae = ot((C) => C ? {
     x: C.x - dt.x,
     y: C.y - dt.y,
     width: C.width,
@@ -3934,17 +3934,17 @@ function ai({
         yt += "#" + Y.id, M.unshift(yt);
         break;
       }
-      const ne = Array.from(((at = Y.parentNode) == null ? void 0 : at.children) || []).filter((Xt) => Xt.tagName === Y.tagName);
-      if (ne.length > 1) {
-        const Xt = ne.indexOf(Y) + 1;
+      const ie = Array.from(((at = Y.parentNode) == null ? void 0 : at.children) || []).filter((Xt) => Xt.tagName === Y.tagName);
+      if (ie.length > 1) {
+        const Xt = ie.indexOf(Y) + 1;
         yt += `:nth-of-type(${Xt})`;
       }
       M.unshift(yt), Y = Y.parentNode;
     }
     return M.join(" > ");
-  }, []), ae = ot((C) => {
-    const M = document.elementFromPoint(C.clientX, C.clientY);
-    return !M || M.closest(".review-overlay") ? null : M;
+  }, []), re = ot((C) => {
+    const M = C.target;
+    return !M || !(M instanceof Element) || M.closest(".review-overlay") || M.closest(".dropdown-menu") || M.closest(".modal") || M.closest(".drawer") ? null : M;
   }, []), Vt = ot((C) => C.ctrlKey || C.metaKey, []), oe = ot((C) => {
     const M = {};
     return C.selector && (M.cssSelector = C.selector), C.xpath && (M.xpath = C.xpath), C.aria && Object.keys(C.aria).length && (M.aria = C.aria), C.testId && (M.testId = C.testId), Object.keys(M).length ? M : null;
@@ -3982,7 +3982,7 @@ function ai({
       aria: null,
       locators: null
     });
-  }, []), re = ot(() => {
+  }, []), ne = ot(() => {
     j([]), nt([]), ut(null), jt(null);
   }, []), Oe = ot(() => {
     const C = ye(), M = be(), Y = it[0], at = Y != null && Y.el ? Te(Y.el) : null;
@@ -4050,8 +4050,8 @@ function ai({
       aria: wt.aria,
       locators: wt.locators
     });
-    st(!1), re(), l == null || l(M);
-  }, [Lt, xe, wt, m, re, l]), je = ot((C) => {
+    st(!1), ne(), l == null || l(M);
+  }, [Lt, xe, wt, m, ne, l]), je = ot((C) => {
     d(C, { status: "resolved" }), _ == null || _({ id: C, status: "resolved" });
   }, [d, _]), k = ot((C) => {
     Wt({
@@ -4117,7 +4117,7 @@ function ai({
     Vt(M) && (M.stopPropagation(), zt(C));
   }, [Vt, zt]), It = ot((C) => {
     if (G.current || I || W !== "element" || Z || At.current) return;
-    const M = ae(C);
+    const M = re(C);
     if (!M) {
       V(null);
       return;
@@ -4129,12 +4129,12 @@ function ai({
       width: Y.width,
       height: Y.height
     }), K(M.tagName.toLowerCase());
-  }, [W, Z, I, ae]), Jt = ot(() => {
+  }, [W, Z, I, re]), Jt = ot(() => {
     V(null);
   }, []), Gt = ot((C) => {
     var yt;
     if (W !== "element" || Z || At.current || I) return;
-    const M = ae(C);
+    const M = re(C);
     if (!M) return;
     C.preventDefault(), C.stopPropagation();
     const Y = M.getBoundingClientRect(), at = {
@@ -4150,22 +4150,22 @@ function ai({
       }
     };
     Vt(C) ? j((Zt) => {
-      const ne = Zt.findIndex((Xt) => Xt.el === M);
-      if (ne > -1) {
-        const Xt = Zt.filter((me, ce) => ce !== ne);
+      const ie = Zt.findIndex((Xt) => Xt.el === M);
+      if (ie > -1) {
+        const Xt = Zt.filter((me, ce) => ce !== ie);
         return Xt.length === 0 && ut(null), Xt;
       }
       return [...Zt, at];
     }) : (j([at]), nt([]), ut(We(M)));
-  }, [W, Z, I, ae, _e, Vt]), Pt = ot((C) => {
-    G.current || W !== "viewport" || Z || I || C.target.closest(".review-overlay") || (C.preventDefault(), At.current = !0, e.current = { x: C.clientX, y: C.clientY }, jt({ x: e.current.x, y: e.current.y, width: 0, height: 0 }));
-  }, [W, Z, I]), le = ot((C) => {
+  }, [W, Z, I, re, _e, Vt]), Pt = ot((C) => {
+    G.current || W !== "viewport" || Z || I || re(C) && (C.preventDefault(), At.current = !0, e.current = { x: C.clientX, y: C.clientY }, jt({ x: e.current.x, y: e.current.y, width: 0, height: 0 }));
+  }, [W, Z, I, re]), le = ot((C) => {
     if (!I || !p.current.rect) return;
     const M = C.clientX + window.scrollX - p.current.x, Y = C.clientY + window.scrollY - p.current.y, at = p.current.rect;
     nt((yt) => {
       if (!yt.find((ge) => ge.id === I)) return yt;
-      let { x: ne, y: Xt, width: me, height: ce } = at;
-      return g.current.includes("e") && (me = Math.max(10, at.width + M)), g.current.includes("s") && (ce = Math.max(10, at.height + Y)), g.current.includes("w") && (me = Math.max(10, at.width - M), ne = at.x + (at.width - me)), g.current.includes("n") && (ce = Math.max(10, at.height - Y), Xt = at.y + (at.height - ce)), yt.map((ge) => ge.id === I ? { ...ge, rect: { x: ne, y: Xt, width: me, height: ce } } : ge);
+      let { x: ie, y: Xt, width: me, height: ce } = at;
+      return g.current.includes("e") && (me = Math.max(10, at.width + M)), g.current.includes("s") && (ce = Math.max(10, at.height + Y)), g.current.includes("w") && (me = Math.max(10, at.width - M), ie = at.x + (at.width - me)), g.current.includes("n") && (ce = Math.max(10, at.height - Y), Xt = at.y + (at.height - ce)), yt.map((ge) => ge.id === I ? { ...ge, rect: { x: ie, y: Xt, width: me, height: ce } } : ge);
     });
   }, [I]), de = ot((C) => {
     if (G.current) return;
@@ -4290,8 +4290,8 @@ function ai({
     const C = () => Et({ x: window.scrollX, y: window.scrollY });
     return window.addEventListener("scroll", C, !0), () => window.removeEventListener("scroll", C, !0);
   }, [t]), Fe(() => {
-    t ? P("element") : (re(), fe(), V(null), F(!1), U(!1));
-  }, [t, re, fe]);
+    t ? P("element") : (ne(), fe(), V(null), F(!1), U(!1));
+  }, [t, ne, fe]);
   const De = {
     transform: `translate(calc(-50% + ${R.x}px), ${R.y}px)`
   };
@@ -4340,7 +4340,7 @@ function ai({
                 "button",
                 {
                   disabled: qt === 0,
-                  onClick: re,
+                  onClick: ne,
                   children: "取消选择"
                 }
               ),
@@ -4362,12 +4362,12 @@ function ai({
           ]
         }
       ),
-      ct && W === "element" && !At.current && !I && /* @__PURE__ */ B.jsx("div", { className: "highlight-box hover-box", style: Ze(se(ct)), children: /* @__PURE__ */ B.jsx("span", { className: "highlight-label", children: ht }) }),
+      ct && W === "element" && !At.current && !I && /* @__PURE__ */ B.jsx("div", { className: "highlight-box hover-box", style: Ze(ae(ct)), children: /* @__PURE__ */ B.jsx("span", { className: "highlight-label", children: ht }) }),
       it.map((C, M) => /* @__PURE__ */ B.jsx(
         "div",
         {
           className: "highlight-box selected-box",
-          style: Ze(se(C.rect)),
+          style: Ze(ae(C.rect)),
           onClick: (Y) => Ct(C, Y),
           children: /* @__PURE__ */ B.jsxs("span", { className: "highlight-label", children: [
             C.tag,
@@ -4378,12 +4378,12 @@ function ai({
         },
         "el-" + M
       )),
-      J && /* @__PURE__ */ B.jsx("div", { className: "highlight-box tree-hover-box", style: Ze(se(J)) }),
+      J && /* @__PURE__ */ B.jsx("div", { className: "highlight-box tree-hover-box", style: Ze(ae(J)) }),
       z.map((C) => /* @__PURE__ */ B.jsxs(
         "div",
         {
           className: `drag-rect selected-box ${I === C.id ? "is-resizing" : ""}`,
-          style: fr(se(C.rect)),
+          style: fr(ae(C.rect)),
           onMouseDown: (M) => Tt(C, M),
           children: [
             /* @__PURE__ */ B.jsxs("span", { className: "box-label", onMouseDown: (M) => M.stopPropagation(), children: [

@@ -154,9 +154,12 @@ export default function ReviewTool({
   }, [])
 
   const getSafeTarget = useCallback((e) => {
-    const target = document.elementFromPoint(e.clientX, e.clientY)
-    if (!target) return null
+    const target = e.target
+    if (!target || !(target instanceof Element)) return null
     if (target.closest('.review-overlay')) return null
+    if (target.closest('.dropdown-menu')) return null
+    if (target.closest('.modal')) return null
+    if (target.closest('.drawer')) return null
     return target
   }, [])
 
@@ -474,12 +477,12 @@ export default function ReviewTool({
   const onMouseDown = useCallback((e) => {
     if (isDraggingToolbarRef.current) return
     if (mode !== 'viewport' || formVisible || resizingBoxId) return
-    if (e.target.closest('.review-overlay')) return
+    if (!getSafeTarget(e)) return
     e.preventDefault()
     isDraggingBoxRef.current = true
     dragStartRef.current = { x: e.clientX, y: e.clientY }
     setDragRect({ x: dragStartRef.current.x, y: dragStartRef.current.y, width: 0, height: 0 })
-  }, [mode, formVisible, resizingBoxId])
+  }, [mode, formVisible, resizingBoxId, getSafeTarget])
 
   const onResizeMove = useCallback((e) => {
     if (!resizingBoxId || !resizeStartRef.current.rect) return
