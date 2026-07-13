@@ -50,7 +50,7 @@ yarn add react-page-review
 
 ### 引入样式
 
-组件依赖自带的 CSS，请在入口或页面中引入：
+`ReviewTool` 挂载时会自动将样式注入到 `document.head`，无需手动引入 CSS。如果你需要覆盖样式或保持旧版行为，仍可手动引入：
 
 ```js
 import 'react-page-review/style.css'
@@ -69,8 +69,6 @@ import 'react-page-review/style.css'
 ```jsx
 import { useState } from 'react'
 import ReviewTool from 'react-page-review'
-import 'react-page-review/style.css'
-
 function App() {
   const [active, setActive] = useState(false)
 
@@ -160,7 +158,7 @@ import {
 } from 'react-page-review'
 
 function CustomReviewOverlay({ active, mode }) {
-  const onIgnoreTarget = (target) => !!target.closest('.review-overlay')
+  const onIgnoreTarget = (target) => !!target.closest('.rpr-review-overlay')
 
   const selection = useElementSelection({
     active: active && mode === 'element',
@@ -182,10 +180,10 @@ function CustomReviewOverlay({ active, mode }) {
   })
 
   return (
-    <div className="review-overlay">
+    <div className="rpr-review-overlay">
       {selection.hoveredRect && (
         <div
-          className="highlight-box hover-box"
+          className="rpr-highlight-box rpr-hover-box"
           style={{
             left: selection.hoveredRect.x,
             top: selection.hoveredRect.y,
@@ -197,7 +195,7 @@ function CustomReviewOverlay({ active, mode }) {
       {selection.selectedElements.map((item) => (
         <div
           key={item.selector}
-          className="highlight-box selected-box"
+          className="rpr-highlight-box rpr-selected-box"
           style={{
             left: item.rect.x,
             top: item.rect.y,
@@ -209,7 +207,7 @@ function CustomReviewOverlay({ active, mode }) {
       {boxing.selectedBoxes.map((box) => (
         <div
           key={box.id}
-          className="drag-rect selected-box"
+          className="rpr-drag-rect rpr-selected-box"
           style={{
             left: boxing.toViewportRect(box.rect).x,
             top: boxing.toViewportRect(box.rect).y,
@@ -416,25 +414,25 @@ async function uploadImage(blob, filename) {
 
 | 类名 | 说明 |
 | --- | --- |
-| `.review-overlay` | 评审浮层根节点，`pointer-events: none`，z-index 9000 |
-| `.review-toolbar` | 顶部工具栏，z-index 10000 |
-| `.highlight-box` / `.selected-box` / `.hover-box` | 元素高亮框 |
-| `.drag-rect` | 框选区域 |
-| `.resize-handle` | 框选区域 8 个调整大小手柄 |
-| `.review-modal` | 评审表单弹窗，z-index 10002 |
-| `.drawer` | 右侧抽屉，z-index 10003 |
+| `.rpr-review-overlay` | 评审浮层根节点，`pointer-events: none`，z-index 9000 |
+| `.rpr-review-toolbar` | 顶部工具栏，z-index 10000 |
+| `.rpr-highlight-box` / `.rpr-selected-box` / `.rpr-hover-box` | 元素高亮框 |
+| `.rpr-drag-rect` | 框选区域 |
+| `.rpr-resize-handle` | 框选区域 8 个调整大小手柄 |
+| `.rpr-review-modal` | 评审表单弹窗，z-index 10002 |
+| `.rpr-drawer` | 右侧抽屉，z-index 10003 |
 
-React 版的按钮类名与 Vue 版略有不同，常见类名为 `button.primary`、`button.danger`、`button.danger-text`、`badge-btn`、`toolbar-btn`。
+React 版的按钮类名与 Vue 版略有不同，常见类名为 `button.rpr-primary`、`button.rpr-danger`、`button.rpr-danger-text`、`.rpr-badge-btn`、`.rpr-toolbar-btn`。
 
 ### 示例：修改主题色
 
 ```css
-.review-toolbar {
+.rpr-review-toolbar {
   background: #1a1a1a;
   color: #fff;
 }
 
-.highlight-box.selected-box {
+.rpr-highlight-box.rpr-selected-box {
   border-color: #ff5722;
   background: rgba(255, 87, 34, 0.12);
 }
@@ -458,8 +456,6 @@ React 版的按钮类名与 Vue 版略有不同，常见类名为 `button.primar
 // App.jsx
 import { useState } from 'react'
 import ReviewTool from 'react-page-review'
-import 'react-page-review/style.css'
-
 function App() {
   const [active, setActive] = useState(false)
 

@@ -37,8 +37,6 @@ npm install antd
 ```jsx
 import { useState } from 'react'
 import { ReviewTool } from 'react-page-review'
-import 'react-page-review/style.css'
-
 function App() {
   const [active, setActive] = useState(false)
 
@@ -50,6 +48,8 @@ function App() {
   )
 }
 ```
+
+> **注意：** `ReviewTool` 挂载时会自动注入样式。现在 `import 'react-page-review/style.css'` 仅为了向后兼容或覆盖样式，已不再必需。
 
 ## Props
 

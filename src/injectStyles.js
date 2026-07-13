@@ -1,4 +1,4 @@
-.rpr-review-overlay,
+const css = `.rpr-review-overlay,
 .rpr-review-overlay * {
   box-sizing: border-box;
 }
@@ -679,4 +679,14 @@ button.rpr-danger-text {
 
 .rpr-link.rpr-danger {
   color: #f56c6c;
+}
+`
+
+export function injectReactPageReviewStyles() {
+  if (typeof document === 'undefined') return
+  if (document.getElementById('rpr-styles')) return
+  const style = document.createElement('style')
+  style.id = 'rpr-styles'
+  style.textContent = css
+  document.head.appendChild(style)
 }

@@ -1,15 +1,20 @@
-.review-overlay {
+.rpr-review-overlay,
+.rpr-review-overlay * {
+  box-sizing: border-box;
+}
+
+.rpr-review-overlay {
   position: fixed;
   inset: 0;
   z-index: 9000;
   pointer-events: none;
 }
 
-.review-overlay > *:not(.highlight-box):not(.drag-rect) {
+.rpr-review-overlay > *:not(.rpr-highlight-box):not(.rpr-drag-rect) {
   pointer-events: auto;
 }
 
-.review-toolbar {
+.rpr-review-toolbar {
   position: fixed;
   top: 16px;
   left: 50%;
@@ -28,7 +33,7 @@
   min-height: auto;
 }
 
-.toolbar-resize-handle {
+.rpr-toolbar-resize-handle {
   position: absolute;
   right: 0;
   bottom: 0;
@@ -39,41 +44,41 @@
   border-bottom-right-radius: 8px;
 }
 
-.review-toolbar.is-dragging {
+.rpr-review-toolbar.rpr-is-dragging {
   cursor: grabbing;
 }
 
-.toolbar-left {
+.rpr-toolbar-left {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-.review-toolbar-title {
+.rpr-review-toolbar-title {
   font-weight: bold;
   color: #001529;
   cursor: grab;
 }
 
-.review-toolbar-title:active {
+.rpr-review-toolbar-title:active {
   cursor: grabbing;
 }
 
-.toolbar-right {
+.rpr-toolbar-right {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.radio-group {
+.rpr-radio-group {
   display: inline-flex;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
   overflow: hidden;
 }
 
-.radio-group button,
-.radio-group .radio-label {
+.rpr-radio-group button,
+.rpr-radio-group .rpr-radio-label {
   padding: 6px 12px;
   border: none;
   background: #fff;
@@ -81,26 +86,26 @@
   font-size: 13px;
 }
 
-.radio-group button.active,
-.radio-group button:hover {
+.rpr-radio-group button.rpr-active,
+.rpr-radio-group button:hover {
   background: #409eff;
   color: #fff;
 }
 
-.radio-group .radio-label {
+.rpr-radio-group .rpr-radio-label {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   cursor: pointer;
 }
 
-.checkbox-group {
+.rpr-checkbox-group {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
 }
 
-.checkbox-label {
+.rpr-checkbox-label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -109,7 +114,7 @@
   color: #606266;
 }
 
-.badge-btn {
+.rpr-badge-btn {
   position: relative;
   padding: 6px 12px;
   border: 1px solid #dcdfe6;
@@ -118,7 +123,7 @@
   cursor: pointer;
 }
 
-.badge {
+.rpr-badge {
   display: inline-block;
   margin-left: 6px;
   padding: 0 6px;
@@ -129,7 +134,7 @@
   line-height: 16px;
 }
 
-.toolbar-btn {
+.rpr-toolbar-btn {
   padding: 6px 12px;
   border: 1px solid #dcdfe6;
   background: #fff;
@@ -138,34 +143,34 @@
   font-size: 13px;
 }
 
-.toolbar-btn:disabled {
+.rpr-toolbar-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-button.primary {
+button.rpr-primary {
   background: #409eff;
   color: #fff;
   border: 1px solid #409eff;
 }
 
-button.danger {
+button.rpr-danger {
   background: #f56c6c;
   color: #fff;
   border: 1px solid #f56c6c;
 }
 
-button.danger-text {
+button.rpr-danger-text {
   background: transparent;
   color: #f56c6c;
   border: none;
 }
 
-.dropdown {
+.rpr-dropdown {
   position: relative;
 }
 
-.dropdown-menu {
+.rpr-dropdown-menu {
   display: none;
   position: absolute;
   top: 100%;
@@ -179,21 +184,21 @@ button.danger-text {
   z-index: 10001;
 }
 
-.dropdown:hover .dropdown-menu {
+.rpr-dropdown:hover .rpr-dropdown-menu {
   display: block;
 }
 
-.dropdown-menu > div {
+.rpr-dropdown-menu > div {
   padding: 8px 12px;
   cursor: pointer;
   font-size: 13px;
 }
 
-.dropdown-menu > div:hover {
+.rpr-dropdown-menu > div:hover {
   background: #f5f7fa;
 }
 
-.highlight-box {
+.rpr-highlight-box {
   position: absolute;
   border: 2px solid #409eff;
   background: rgba(64, 158, 255, 0.15);
@@ -201,26 +206,26 @@ button.danger-text {
   pointer-events: none;
 }
 
-.hover-box {
+.rpr-hover-box {
   border-color: #409eff;
   background: rgba(64, 158, 255, 0.12);
 }
 
-.selected-box {
+.rpr-selected-box {
   border-color: #f56c6c;
   background: rgba(245, 108, 108, 0.12);
 }
 
-.selected-box .highlight-label {
+.rpr-selected-box .rpr-highlight-label {
   background: #f56c6c;
 }
 
-.tree-hover-box {
+.rpr-tree-hover-box {
   border-color: #e6a23c;
   background: rgba(230, 162, 60, 0.15);
 }
 
-.highlight-label {
+.rpr-highlight-label {
   position: absolute;
   top: -22px;
   left: 0;
@@ -235,14 +240,14 @@ button.danger-text {
   gap: 6px;
 }
 
-.remove-icon {
+.rpr-remove-icon {
   cursor: pointer;
   font-style: normal;
   font-weight: bold;
   line-height: 1;
 }
 
-.drag-rect {
+.rpr-drag-rect {
   position: absolute;
   border: 2px dashed #67c23a;
   background: rgba(103, 194, 58, 0.15);
@@ -250,21 +255,21 @@ button.danger-text {
   pointer-events: auto;
 }
 
-.drag-rect.preview-box {
+.rpr-drag-rect.rpr-preview-box {
   border-color: #67c23a;
   pointer-events: none;
 }
 
-.drag-rect.selected-box {
+.rpr-drag-rect.rpr-selected-box {
   border-color: #f56c6c;
   background: rgba(245, 108, 108, 0.12);
 }
 
-.drag-rect.is-resizing {
+.rpr-drag-rect.rpr-is-resizing {
   pointer-events: none;
 }
 
-.box-label {
+.rpr-box-label {
   position: absolute;
   top: -22px;
   left: 0;
@@ -279,7 +284,7 @@ button.danger-text {
   gap: 6px;
 }
 
-.resize-handle {
+.rpr-resize-handle {
   position: absolute;
   background: #fff;
   border: 1px solid #f56c6c;
@@ -288,16 +293,16 @@ button.danger-text {
   cursor: pointer;
 }
 
-.resize-handle.handle-nw { cursor: nw-resize; }
-.resize-handle.handle-n { cursor: n-resize; }
-.resize-handle.handle-ne { cursor: ne-resize; }
-.resize-handle.handle-w { cursor: w-resize; }
-.resize-handle.handle-e { cursor: e-resize; }
-.resize-handle.handle-sw { cursor: sw-resize; }
-.resize-handle.handle-s { cursor: s-resize; }
-.resize-handle.handle-se { cursor: se-resize; }
+.rpr-resize-handle.rpr-handle-nw { cursor: nw-resize; }
+.rpr-resize-handle.rpr-handle-n { cursor: n-resize; }
+.rpr-resize-handle.rpr-handle-ne { cursor: ne-resize; }
+.rpr-resize-handle.rpr-handle-w { cursor: w-resize; }
+.rpr-resize-handle.rpr-handle-e { cursor: e-resize; }
+.rpr-resize-handle.rpr-handle-sw { cursor: sw-resize; }
+.rpr-resize-handle.rpr-handle-s { cursor: s-resize; }
+.rpr-resize-handle.rpr-handle-se { cursor: se-resize; }
 
-.modal-backdrop {
+.rpr-modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
@@ -305,7 +310,7 @@ button.danger-text {
   pointer-events: auto;
 }
 
-.modal {
+.rpr-modal {
   background: #fff;
   border-radius: 8px;
   width: 520px;
@@ -314,7 +319,7 @@ button.danger-text {
   overflow: auto;
 }
 
-.review-modal {
+.rpr-review-modal {
   position: fixed;
   left: 50%;
   top: 50%;
@@ -331,20 +336,20 @@ button.danger-text {
   overflow: hidden;
 }
 
-.review-modal.is-dragging {
+.rpr-review-modal.rpr-is-dragging {
   user-select: none;
 }
 
-.review-modal-header {
+.rpr-review-modal-header {
   cursor: grab;
   user-select: none;
 }
 
-.review-modal-header:active {
+.rpr-review-modal-header:active {
   cursor: grabbing;
 }
 
-.review-modal-close {
+.rpr-review-modal-close {
   background: none;
   border: none;
   font-size: 20px;
@@ -353,7 +358,7 @@ button.danger-text {
   line-height: 1;
 }
 
-.review-modal .modal-header {
+.rpr-review-modal .rpr-modal-header {
   padding: 12px 16px;
   font-weight: bold;
   border-bottom: 1px solid #ebeef5;
@@ -363,11 +368,11 @@ button.danger-text {
   cursor: grab;
 }
 
-.review-modal .modal-header:active {
+.rpr-review-modal .rpr-modal-header:active {
   cursor: grabbing;
 }
 
-.review-modal .modal-header .close {
+.rpr-review-modal .rpr-modal-header .rpr-close {
   background: none;
   border: none;
   font-size: 20px;
@@ -375,13 +380,13 @@ button.danger-text {
   color: #909399;
 }
 
-.review-modal .modal-body {
+.rpr-review-modal .rpr-modal-body {
   flex: 1;
   padding: 16px;
   overflow: auto;
 }
 
-.review-modal .modal-footer {
+.rpr-review-modal .rpr-modal-footer {
   padding: 12px 16px;
   border-top: 1px solid #ebeef5;
   display: flex;
@@ -389,7 +394,7 @@ button.danger-text {
   gap: 8px;
 }
 
-.modal-resize-handle {
+.rpr-modal-resize-handle {
   position: absolute;
   right: 0;
   bottom: 0;
@@ -400,26 +405,26 @@ button.danger-text {
   border-bottom-right-radius: 8px;
 }
 
-.review-targets-summary {
+.rpr-review-targets-summary {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.target-tag {
+.rpr-target-tag {
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.review-target-info {
+.rpr-review-target-info {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.target-desc {
+.rpr-target-desc {
   color: #606266;
   font-size: 13px;
   max-width: 360px;
@@ -428,12 +433,12 @@ button.danger-text {
   white-space: nowrap;
 }
 
-.text-muted {
+.rpr-text-muted {
   color: #909399;
   font-size: 13px;
 }
 
-.tag {
+.rpr-tag {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 4px;
@@ -442,27 +447,27 @@ button.danger-text {
   color: #606266;
 }
 
-.tag.info {
+.rpr-tag.rpr-info {
   background: #f4f4f5;
   color: #606266;
 }
 
-.tag.warning {
+.rpr-tag.rpr-warning {
   background: #fdf6ec;
   color: #e6a23c;
 }
 
-.tag.danger {
+.rpr-tag.rpr-danger {
   background: #fef0f0;
   color: #f56c6c;
 }
 
-.tag.success {
+.rpr-tag.rpr-success {
   background: #f0f9eb;
   color: #67c23a;
 }
 
-.confirm-modal {
+.rpr-confirm-modal {
   width: 360px;
   position: fixed;
   left: 50%;
@@ -471,14 +476,14 @@ button.danger-text {
   z-index: 10002;
 }
 
-.drawer-backdrop {
+.rpr-drawer-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   z-index: 10001;
 }
 
-.drawer {
+.rpr-drawer {
   position: fixed;
   top: 0;
   right: 0;
@@ -492,7 +497,7 @@ button.danger-text {
   flex-direction: column;
 }
 
-.drawer-header {
+.rpr-drawer-header {
   padding: 16px;
   font-weight: bold;
   border-bottom: 1px solid #ebeef5;
@@ -501,32 +506,32 @@ button.danger-text {
   align-items: center;
 }
 
-.drawer-header .close {
+.rpr-drawer-header .rpr-close {
   background: none;
   border: none;
   font-size: 20px;
   cursor: pointer;
 }
 
-.drawer-body {
+.rpr-drawer-body {
   flex: 1;
   padding: 16px;
   overflow: auto;
 }
 
-.form-row {
+.rpr-form-row {
   margin-bottom: 16px;
 }
 
-.form-row label {
+.rpr-form-row label {
   display: block;
   margin-bottom: 6px;
   font-size: 14px;
   color: #606266;
 }
 
-.form-row input,
-.form-row textarea {
+.rpr-form-row input,
+.rpr-form-row textarea {
   width: 100%;
   padding: 8px;
   border: 1px solid #dcdfe6;
@@ -535,29 +540,29 @@ button.danger-text {
   box-sizing: border-box;
 }
 
-.required {
+.rpr-required {
   color: #f56c6c;
 }
 
-.tree-panel {
+.rpr-tree-panel {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.tree-section h4 {
+.rpr-tree-section h4 {
   margin: 0 0 10px;
   color: #303133;
   font-size: 14px;
 }
 
-.tree-list {
+.rpr-tree-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.tree-node {
+.rpr-tree-node {
   padding: 6px 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -566,112 +571,112 @@ button.danger-text {
   transition: background 0.15s;
 }
 
-.tree-node:hover {
+.rpr-tree-node:hover {
   background: #f5f7fa;
 }
 
-.node-tag {
+.rpr-node-tag {
   color: #409eff;
   font-weight: bold;
 }
 
-.node-id {
+.rpr-node-id {
   color: #67c23a;
   margin-left: 6px;
 }
 
-.node-aria {
+.rpr-node-aria {
   color: #e6a23c;
   margin-left: 6px;
 }
 
-.node-testid {
+.rpr-node-testid {
   color: #909399;
   margin-left: 6px;
 }
 
-.node-name {
+.rpr-node-name {
   color: #606266;
   font-weight: bold;
 }
 
-.review-list-actions {
+.rpr-review-list-actions {
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
 }
 
-.empty {
+.rpr-empty {
   text-align: center;
   color: #909399;
   padding: 40px 0;
 }
 
-.review-list {
+.rpr-review-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.review-item {
+.rpr-review-item {
   border: 1px solid #e4e7ed;
   border-radius: 4px;
   padding: 12px;
 }
 
-.review-item-header {
+.rpr-review-item-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
 }
 
-.review-item-title {
+.rpr-review-item-title {
   font-weight: bold;
   color: #303133;
 }
 
-.review-item-tags {
+.rpr-review-item-tags {
   display: flex;
   gap: 6px;
 }
 
-.review-item-target {
+.rpr-review-item-target {
   color: #606266;
   font-size: 12px;
   margin-bottom: 8px;
   word-break: break-all;
 }
 
-.review-item-suggestion {
+.rpr-review-item-suggestion {
   color: #303133;
   font-size: 13px;
   line-height: 1.6;
   margin-bottom: 12px;
 }
 
-.review-item-meta {
+.rpr-review-item-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.review-item-actions {
+.rpr-review-item-actions {
   display: flex;
   gap: 8px;
 }
 
-.link {
+.rpr-link {
   background: none;
   border: none;
   cursor: pointer;
   font-size: 13px;
 }
 
-.link.primary {
+.rpr-link.rpr-primary {
   color: #409eff;
 }
 
-.link.danger {
+.rpr-link.rpr-danger {
   color: #f56c6c;
 }

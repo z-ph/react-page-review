@@ -18,7 +18,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && node --input-type=module -e \"import fs from 'node:fs'; fs.copyFileSync('src/style.css', 'dist/style.css')\"",
     "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {

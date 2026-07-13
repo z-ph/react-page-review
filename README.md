@@ -37,8 +37,6 @@ npm install antd
 ```jsx
 import { useState } from 'react'
 import { ReviewTool } from 'react-page-review'
-import 'react-page-review/style.css'
-
 function App() {
   const [active, setActive] = useState(false)
 
@@ -50,6 +48,8 @@ function App() {
   )
 }
 ```
+
+> **Note:** Styles are injected automatically when `ReviewTool` mounts. The manual `import 'react-page-review/style.css'` is now optional and kept only for backward compatibility or for overriding styles.
 
 ## Props
 

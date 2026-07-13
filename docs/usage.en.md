@@ -50,7 +50,7 @@ If you use the default `ReviewTool` UI, also install the optional peer dependenc
 
 ### Import Styles
 
-The component relies on its bundled CSS. Import it in your entry file or page:
+`ReviewTool` automatically injects its styles into `document.head` on mount, so no manual CSS import is required. You can still import the stylesheet for overrides or backward compatibility:
 
 ```js
 import 'react-page-review/style.css'
@@ -69,8 +69,6 @@ The simplest integration is to mount `ReviewTool` and control review mode with `
 ```jsx
 import { useState } from 'react'
 import ReviewTool from 'react-page-review'
-import 'react-page-review/style.css'
-
 function App() {
   const [active, setActive] = useState(false)
 
@@ -161,7 +159,7 @@ import {
 } from 'react-page-review'
 
 function CustomReviewOverlay({ active, mode }) {
-  const onIgnoreTarget = (target) => !!target.closest('.review-overlay')
+  const onIgnoreTarget = (target) => !!target.closest('.rpr-review-overlay')
 
   const selection = useElementSelection({
     active: active && mode === 'element',
@@ -183,10 +181,10 @@ function CustomReviewOverlay({ active, mode }) {
   })
 
   return (
-    <div className="review-overlay">
+    <div className="rpr-review-overlay">
       {selection.hoveredRect && (
         <div
-          className="highlight-box hover-box"
+          className="rpr-highlight-box rpr-hover-box"
           style={{
             left: selection.hoveredRect.x,
             top: selection.hoveredRect.y,
@@ -198,7 +196,7 @@ function CustomReviewOverlay({ active, mode }) {
       {selection.selectedElements.map((item) => (
         <div
           key={item.selector}
-          className="highlight-box selected-box"
+          className="rpr-highlight-box rpr-selected-box"
           style={{
             left: item.rect.x,
             top: item.rect.y,
@@ -210,7 +208,7 @@ function CustomReviewOverlay({ active, mode }) {
       {boxing.selectedBoxes.map((box) => (
         <div
           key={box.id}
-          className="drag-rect selected-box"
+          className="rpr-drag-rect rpr-selected-box"
           style={{
             left: boxing.toViewportRect(box.rect).x,
             top: boxing.toViewportRect(box.rect).y,
@@ -417,25 +415,25 @@ Default styles are provided by `react-page-review/style.css`. Override the class
 
 | Class | Description |
 | --- | --- |
-| `.review-overlay` | Review overlay root, `pointer-events: none`, z-index 9000 |
-| `.review-toolbar` | Top floating toolbar, z-index 10000 |
-| `.highlight-box` / `.selected-box` / `.hover-box` | Element highlight boxes |
-| `.drag-rect` | Box-selection areas |
-| `.resize-handle` | Eight resize handles on box selections |
-| `.review-modal` | Review form modal, z-index 10002 |
-| `.drawer` | Right-side drawer, z-index 10003 |
+| `.rpr-review-overlay` | Review overlay root, `pointer-events: none`, z-index 9000 |
+| `.rpr-review-toolbar` | Top floating toolbar, z-index 10000 |
+| `.rpr-highlight-box` / `.rpr-selected-box` / `.rpr-hover-box` | Element highlight boxes |
+| `.rpr-drag-rect` | Box-selection areas |
+| `.rpr-resize-handle` | Eight resize handles on box selections |
+| `.rpr-review-modal` | Review form modal, z-index 10002 |
+| `.rpr-drawer` | Right-side drawer, z-index 10003 |
 
-React button class names differ slightly from the Vue version. Common ones are `button.primary`, `button.danger`, `button.danger-text`, `badge-btn`, and `toolbar-btn`.
+React button class names differ slightly from the Vue version. Common ones are `button.rpr-primary`, `button.rpr-danger`, `button.rpr-danger-text`, `.rpr-badge-btn`, and `.rpr-toolbar-btn`.
 
 ### Example: Theme Override
 
 ```css
-.review-toolbar {
+.rpr-review-toolbar {
   background: #1a1a1a;
   color: #fff;
 }
 
-.highlight-box.selected-box {
+.rpr-highlight-box.rpr-selected-box {
   border-color: #ff5722;
   background: rgba(255, 87, 34, 0.12);
 }
@@ -459,8 +457,6 @@ React button class names differ slightly from the Vue version. Common ones are `
 // App.jsx
 import { useState } from 'react'
 import ReviewTool from 'react-page-review'
-import 'react-page-review/style.css'
-
 function App() {
   const [active, setActive] = useState(false)
 

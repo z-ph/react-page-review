@@ -28,6 +28,7 @@ import {
   uploadScreenshot
 } from './screenshot.js'
 import { getComponentTree, getNodeInfo } from './inspector.js'
+import { injectReactPageReviewStyles } from './injectStyles.js'
 
 export default function ReviewTool({
   active = false,
@@ -73,6 +74,10 @@ export default function ReviewTool({
   const [selectedScreenshots, setSelectedScreenshots] = useState([])
   const [confirm, setConfirm] = useState(null)
 
+  useEffect(() => {
+    injectReactPageReviewStyles()
+  }, [])
+
   const [form, setForm] = useState({
     type: 'element',
     title: '',
@@ -93,7 +98,7 @@ export default function ReviewTool({
 
   const onIgnoreTarget = useCallback((target) => {
     if (panelInteractingRef.current) return true
-    return !!target.closest('.review-overlay')
+    return !!target.closest('.rpr-review-overlay')
   }, [])
 
   const selection = useElementSelection({
@@ -121,8 +126,8 @@ export default function ReviewTool({
     minWidth: 400,
     minHeight: 48,
     isDragHandle: (target) =>
-      target.classList?.contains('review-toolbar-title') ||
-      target.classList?.contains('review-toolbar'),
+      target.classList?.contains('rpr-review-toolbar-title') ||
+      target.classList?.contains('rpr-review-toolbar'),
     measureRef: toolbarRef
   })
 
@@ -480,16 +485,16 @@ export default function ReviewTool({
   if (!active) return null
 
   return createPortal(
-    <div className="review-overlay">
+    <div className="rpr-review-overlay">
       <div
         ref={toolbarRef}
-        className={`review-toolbar ${toolbarDrag.isDragging ? 'is-dragging' : ''}`}
+        className={`rpr-review-toolbar ${toolbarDrag.isDragging ? 'rpr-is-dragging' : ''}`}
         style={toolbarStyle}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={toolbarDrag.onDragStart}
       >
-        <div className="toolbar-left">
-          <span className="review-toolbar-title" title="按住此处可拖动">页面评审模式</span>
+        <div className="rpr-toolbar-left">
+          <span className="rpr-review-toolbar-title" title="按住此处可拖动">页面评审模式</span>
           <Radio.Group
             size="small"
             value={mode}
@@ -501,7 +506,7 @@ export default function ReviewTool({
             <Radio.Button value="viewport">框定视图</Radio.Button>
           </Radio.Group>
         </div>
-        <div className="toolbar-right">
+        <div className="rpr-toolbar-right">
           <Badge count={selectedCount} size="small" offset={[10, -2]}>
             <Button
               type="primary"
@@ -524,48 +529,48 @@ export default function ReviewTool({
             <Button size="small">更多</Button>
           </Dropdown>
         </div>
-        <div className="toolbar-resize-handle" onMouseDown={toolbarDrag.onResizeStart} />
+        <div className="rpr-toolbar-resize-handle" onMouseDown={toolbarDrag.onResizeStart} />
       </div>
 
       {selection.hoveredRect && mode === 'element' && !boxing.isResizing && !boxing.dragRect && (
-        <div className="highlight-box hover-box" style={highlightStyle(selection.hoveredRect)}>
-          <span className="highlight-label">{selection.hoveredTag}</span>
+        <div className="rpr-highlight-box rpr-hover-box" style={highlightStyle(selection.hoveredRect)}>
+          <span className="rpr-highlight-label">{selection.hoveredTag}</span>
         </div>
       )}
 
       {selection.selectedElements.map((item, idx) => (
         <div
           key={'el-' + idx}
-          className="highlight-box selected-box"
+          className="rpr-highlight-box rpr-selected-box"
           style={highlightStyle(item.rect)}
           onClick={(e) => onSelectedElementClick(item, e)}
         >
-          <span className="highlight-label">
+          <span className="rpr-highlight-label">
             {item.tag}
-            <i className="remove-icon" onClick={(e) => { e.stopPropagation(); selection.removeSelectedElement(item) }}>×</i>
+            <i className="rpr-remove-icon" onClick={(e) => { e.stopPropagation(); selection.removeSelectedElement(item) }}>×</i>
           </span>
         </div>
       ))}
 
       {treeHoverRect && (
-        <div className="highlight-box tree-hover-box" style={highlightStyle(boxing.toViewportRect(treeHoverRect))} />
+        <div className="rpr-highlight-box rpr-tree-hover-box" style={highlightStyle(boxing.toViewportRect(treeHoverRect))} />
       )}
 
       {boxing.selectedBoxes.map(box => (
         <div
           key={box.id}
-          className={`drag-rect selected-box ${boxing.resizingBoxId === box.id ? 'is-resizing' : ''}`}
+          className={`rpr-drag-rect rpr-selected-box ${boxing.resizingBoxId === box.id ? 'rpr-is-resizing' : ''}`}
           style={boxStyle(boxing.toViewportRect(box.rect))}
           onMouseDown={(e) => onBoxMouseDown(box, e)}
         >
-          <span className="box-label" onMouseDown={(e) => e.stopPropagation()}>
+          <span className="rpr-box-label" onMouseDown={(e) => e.stopPropagation()}>
             框选 {box.index + 1}
-            <i className="remove-icon" onClick={(e) => { e.stopPropagation(); boxing.removeBox(box) }}>×</i>
+            <i className="rpr-remove-icon" onClick={(e) => { e.stopPropagation(); boxing.removeBox(box) }}>×</i>
           </span>
           {resizeHandlePositions.map(position => (
             <div
               key={position}
-              className={`resize-handle handle-${position}`}
+              className={`rpr-resize-handle rpr-handle-${position}`}
               style={handleStyle(position, boxing.toViewportRect(box.rect))}
               onMouseDown={(e) => boxing.startResize(box, position, e)}
             />
@@ -574,11 +579,11 @@ export default function ReviewTool({
       ))}
 
       {boxing.dragRect && (
-        <div className="drag-rect preview-box" style={boxStyle(boxing.dragRect)} />
+        <div className="rpr-drag-rect rpr-preview-box" style={boxStyle(boxing.dragRect)} />
       )}
 
       <Modal
-        title={<div className="review-modal-header">添加评审意见</div>}
+        title={<div className="rpr-review-modal-header">添加评审意见</div>}
         open={formVisible}
         onCancel={() => setFormVisible(false)}
         footer={[
@@ -587,20 +592,20 @@ export default function ReviewTool({
         ]}
         width={modalDrag.size.width}
         style={modalStyle}
-        className="review-modal"
-        wrapClassName="review-modal-wrap"
+        className="rpr-review-modal"
+        wrapClassName="rpr-review-modal-wrap"
         zIndex={10002}
         getContainer={false}
-        closeIcon={<span className="review-modal-close">×</span>}
+        closeIcon={<span className="rpr-review-modal-close">×</span>}
         modalRender={(node) => <div onMouseDown={modalDrag.onDragStart}>{node}</div>}
       >
-        <div className="form-row">
+        <div className="rpr-form-row">
           <label>评审目标</label>
-          <div className="review-targets-summary">
+          <div className="rpr-review-targets-summary">
             {form.targets.map((target, idx) => (
               <Tag
                 key={idx}
-                className="target-tag"
+                className="rpr-target-tag"
                 title={target.type === 'element'
                   ? (target.selector || '元素')
                   : `框选 ${target.viewportRect?.x},${target.viewportRect?.y}`}
@@ -612,15 +617,15 @@ export default function ReviewTool({
             ))}
           </div>
         </div>
-        <div className="form-row">
+        <div className="rpr-form-row">
           <label>窗口尺寸</label>
-          <span className="text-muted">{form.viewport?.width} × {form.viewport?.height}</span>
+          <span className="rpr-text-muted">{form.viewport?.width} × {form.viewport?.height}</span>
         </div>
-        <div className="form-row">
+        <div className="rpr-form-row">
           <label>滚动位置</label>
-          <span className="text-muted">x={form.scroll?.x}, y={form.scroll?.y}</span>
+          <span className="rpr-text-muted">x={form.scroll?.x}, y={form.scroll?.y}</span>
         </div>
-        <div className="form-row">
+        <div className="rpr-form-row">
           <label>截图</label>
           <Checkbox.Group
             options={[
@@ -632,16 +637,16 @@ export default function ReviewTool({
             onChange={(values) => setSelectedScreenshots(values)}
           />
         </div>
-        <div className="form-row">
-          <label>标题 <span className="required">*</span></label>
+        <div className="rpr-form-row">
+          <label>标题 <span className="rpr-required">*</span></label>
           <Input
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             placeholder="例如：按钮样式不统一"
           />
         </div>
-        <div className="form-row">
-          <label>严重等级 <span className="required">*</span></label>
+        <div className="rpr-form-row">
+          <label>严重等级 <span className="rpr-required">*</span></label>
           <Select
             value={form.severity}
             onChange={(value) => setForm({ ...form, severity: value })}
@@ -654,8 +659,8 @@ export default function ReviewTool({
             ]}
           />
         </div>
-        <div className="form-row">
-          <label>评审建议 <span className="required">*</span></label>
+        <div className="rpr-form-row">
+          <label>评审建议 <span className="rpr-required">*</span></label>
           <Input.TextArea
             rows={4}
             value={form.suggestion}
@@ -663,7 +668,7 @@ export default function ReviewTool({
             placeholder="描述问题现象、影响和改进建议"
           />
         </div>
-        <div className="modal-resize-handle" onMouseDown={modalDrag.onResizeStart} />
+        <div className="rpr-modal-resize-handle" onMouseDown={modalDrag.onResizeStart} />
       </Modal>
 
       <Drawer
@@ -675,46 +680,46 @@ export default function ReviewTool({
         resizable
         zIndex={10003}
         getContainer={false}
-        className="review-drawer"
+        className="rpr-review-drawer"
       >
         {!componentTree ? (
           <Empty description="先选择一个元素以查看组件树" />
         ) : (
-          <div className="tree-panel">
+          <div className="rpr-tree-panel">
             {componentTree.framework && componentTree.framework.length > 0 && (
-              <div className="tree-section">
+              <div className="rpr-tree-section">
                 <h4>框架组件树</h4>
-                <div className="tree-list">
+                <div className="rpr-tree-list">
                   {componentTree.framework.map((node, idx) => (
                     <div
                       key={'fw-' + idx}
-                      className="tree-node"
+                      className="rpr-tree-node"
                       onMouseEnter={() => onTreeNodeHover(node)}
                       onMouseLeave={() => setTreeHoverRect(null)}
                       onClick={() => onTreeNodeSelect(node)}
                     >
-                      <span className="node-name">{node.componentName}</span>
+                      <span className="rpr-node-name">{node.componentName}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-            <div className="tree-section">
+            <div className="rpr-tree-section">
               <h4>DOM 树</h4>
-              <div className="tree-list">
+              <div className="rpr-tree-list">
                 {componentTree.dom.map((node, idx) => (
                   <div
                     key={'dom-' + idx}
-                    className="tree-node"
+                    className="rpr-tree-node"
                     style={{ paddingLeft: idx * 12 }}
                     onMouseEnter={() => onTreeNodeHover(node)}
                     onMouseLeave={() => setTreeHoverRect(null)}
                     onClick={() => onTreeNodeSelect(node)}
                   >
-                    <span className="node-tag">{node.tag}</span>
-                    {node.id && <span className="node-id">#{node.id}</span>}
-                    {node.aria?.role && <span className="node-aria">role={node.aria.role}</span>}
-                    {node.testId && <span className="node-testid">testid={node.testId}</span>}
+                    <span className="rpr-node-tag">{node.tag}</span>
+                    {node.id && <span className="rpr-node-id">#{node.id}</span>}
+                    {node.aria?.role && <span className="rpr-node-aria">role={node.aria.role}</span>}
+                    {node.testId && <span className="rpr-node-testid">testid={node.testId}</span>}
                   </div>
                 ))}
               </div>
@@ -732,7 +737,7 @@ export default function ReviewTool({
         resizable
         zIndex={10003}
         getContainer={false}
-        className="review-drawer"
+        className="rpr-review-drawer"
         extra={(
           <div style={{ display: 'flex', gap: 8 }}>
             <Button type="primary" size="small" onClick={handleExportMarkdown}>导出 Markdown</Button>
@@ -745,7 +750,7 @@ export default function ReviewTool({
         {pageReviews.length === 0 ? (
           <Empty description="暂无评审意见" />
         ) : (
-          <div className="review-list">
+          <div className="rpr-review-list">
             {pageReviews.map(item => (
               <Card
                 key={item.id}
@@ -759,11 +764,11 @@ export default function ReviewTool({
                   </div>
                 )}
               >
-                <p className="review-item-target">{summarizeTargets(item.targets)}</p>
-                <p className="review-item-suggestion">{item.suggestion}</p>
-                <div className="review-item-meta">
-                  <span className="text-muted">{new Date(item.createdAt).toLocaleString()}</span>
-                  <div className="review-item-actions">
+                <p className="rpr-review-item-target">{summarizeTargets(item.targets)}</p>
+                <p className="rpr-review-item-suggestion">{item.suggestion}</p>
+                <div className="rpr-review-item-meta">
+                  <span className="rpr-text-muted">{new Date(item.createdAt).toLocaleString()}</span>
+                  <div className="rpr-review-item-actions">
                     {item.status !== 'resolved' && <Button type="link" size="small" onClick={() => resolve(item.id)}>标记解决</Button>}
                     <Button type="link" danger size="small" onClick={() => remove(item.id)}>删除</Button>
                   </div>
