@@ -11,7 +11,7 @@
 - 可拖动工具栏与评审弹窗
 - localStorage 持久化
 - 导出：JSON / Markdown / ZIP（含截图）
-- 零 UI 框架依赖
+- 无额外 UI 组件库依赖（使用原生 React 元素 + 自定义样式）
 
 ## 安装
 

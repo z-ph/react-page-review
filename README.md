@@ -11,7 +11,7 @@ A React page review tool for collecting UI feedback through element selection, v
 - Draggable toolbar and review modal
 - localStorage persistence
 - Export to JSON / Markdown / ZIP (with screenshots)
-- Zero UI framework dependency
+- No additional UI component library dependency (uses native React elements with custom CSS)
 
 ## Install
 
