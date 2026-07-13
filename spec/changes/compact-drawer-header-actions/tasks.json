@@ -26,13 +26,13 @@
     "steps": [
       {
         "step": "发版并在 bidding-prototype 更新到新版",
-        "completed": false
+        "completed": true
       },
       {
         "step": "test-page-review-core.cjs 全量通过（重点 2.8 抽屉关闭、8.1/8.2 导出）",
-        "completed": false
+        "completed": true
       }
     ],
-    "passes": false
+    "passes": true
   }
 ]
