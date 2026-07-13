@@ -10,10 +10,6 @@
   pointer-events: none;
 }
 
-.rpr-review-overlay > *:not(.rpr-highlight-box):not(.rpr-drag-rect) {
-  pointer-events: auto;
-}
-
 .rpr-review-toolbar {
   position: fixed;
   top: 16px;
@@ -31,6 +27,8 @@
   user-select: none;
   min-width: auto;
   min-height: auto;
+  /* antd 弹层根节点（Modal/Drawer）自带 pointer-events 管理，只给自有交互元素恢复 */
+  pointer-events: auto;
 }
 
 .rpr-toolbar-resize-handle {

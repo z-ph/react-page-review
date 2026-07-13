@@ -676,7 +676,7 @@ export default function ReviewTool({
         open={treeVisible}
         onClose={() => setTreeVisible(false)}
         placement="right"
-        width={480}
+        size={480}
         resizable
         zIndex={10003}
         getContainer={false}
@@ -733,7 +733,7 @@ export default function ReviewTool({
         open={listVisible}
         onClose={() => setListVisible(false)}
         placement="right"
-        width={560}
+        size={560}
         resizable
         zIndex={10003}
         getContainer={false}
