@@ -26,17 +26,17 @@
     "steps": [
       {
         "step": "更新 bidding-prototype 中的 react-page-review",
-        "completed": false
+        "completed": true
       },
       {
         "step": "验证页面加载后评审 overlay 默认隐藏",
-        "completed": false
+        "completed": true
       },
       {
         "step": "验证打开/退出评审行为正常",
-        "completed": false
+        "completed": true
       }
     ],
-    "passes": false
+    "passes": true
   }
 ]
