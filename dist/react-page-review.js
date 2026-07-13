@@ -3098,7 +3098,9 @@ function ir(t) {
 function Be(t, o) {
   if (typeof window > "u") return;
   const r = URL.createObjectURL(t), f = document.createElement("a");
-  f.href = r, f.download = o, document.body.appendChild(f), f.click(), document.body.removeChild(f), URL.revokeObjectURL(r);
+  f.href = r, f.download = o, f.style.display = "none", document.body.appendChild(f), f.click(), setTimeout(() => {
+    f.parentNode && document.body.removeChild(f), URL.revokeObjectURL(r);
+  }, 1e3);
 }
 function Le() {
   const t = /* @__PURE__ */ new Date();
