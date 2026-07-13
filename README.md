@@ -11,7 +11,8 @@ A React page review tool for collecting UI feedback through element selection, v
 - Draggable toolbar and review modal
 - localStorage persistence
 - Export to JSON / Markdown / ZIP (with screenshots)
-- No additional UI component library dependency (uses native React elements with custom CSS)
+- Optional Ant Design peer dependency for the default UI (on-demand import)
+- Headless interaction hooks for custom UI integrations
 
 ## Install
 
@@ -23,6 +24,12 @@ Peer dependencies:
 
 ```bash
 npm install react react-dom
+```
+
+If you use the default `ReviewTool` UI, also install the optional peer dependency:
+
+```bash
+npm install antd
 ```
 
 ## Usage
@@ -67,6 +74,26 @@ const { reviews, addReview, exportToJSON, exportToZIP } = usePageReview({
   storageKey: 'my-reviews'
 })
 ```
+
+## Headless Interaction Hooks
+
+The following hooks can be used independently to build a custom review UI:
+
+```js
+import {
+  useElementSelection,
+  useViewportBoxing,
+  useDragResize
+} from 'react-page-review'
+
+const selection = useElementSelection({ active, mode: 'element', onIgnoreTarget })
+const boxing = useViewportBoxing({ active, mode: 'viewport', onIgnoreTarget })
+const panel = useDragResize({ initialPosition, initialSize, isDragHandle })
+```
+
+- `useElementSelection` — hover detection, click selection, Ctrl/Cmd multi-select, and scroll-following highlight rects.
+- `useViewportBoxing` — drag-to-create boxes, 8-direction resize, and multi-box support.
+- `useDragResize` — generic drag and resize for floating panels (toolbar, modal, drawer).
 
 ## Chinese Documentation
 

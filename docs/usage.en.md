@@ -46,6 +46,8 @@ yarn add react-page-review
 }
 ```
 
+If you use the default `ReviewTool` UI, also install the optional peer dependency `antd` (≥6.0.0). The library imports only the antd components it needs.
+
 ### Import Styles
 
 The component relies on its bundled CSS. Import it in your entry file or page:
@@ -144,6 +146,105 @@ const {
 - `exportToZIP()`: asynchronously downloads a ZIP containing JSON, Markdown, and screenshots.
 
 > **Note**: `screenshot.js` and `inspector.js` are internal utilities used by `ReviewTool` and are **not** exported from the public entry. If you build a fully custom UI, use `html-to-image` directly for screenshots.
+
+---
+
+## Headless Interaction Hooks
+
+If `usePageReview` is not enough and you want to reuse the low-level selection, boxing, drag, and resize logic, import the headless hooks directly:
+
+```js
+import {
+  useElementSelection,
+  useViewportBoxing,
+  useDragResize
+} from 'react-page-review'
+
+function CustomReviewOverlay({ active, mode }) {
+  const onIgnoreTarget = (target) => !!target.closest('.review-overlay')
+
+  const selection = useElementSelection({
+    active: active && mode === 'element',
+    mode,
+    onIgnoreTarget
+  })
+
+  const boxing = useViewportBoxing({
+    active: active && mode === 'viewport',
+    mode,
+    onIgnoreTarget,
+    onBoxCreate: (box, e) => console.log('box created', box)
+  })
+
+  const panel = useDragResize({
+    initialPosition: { x: 0, y: 0 },
+    initialSize: { width: 400, height: null },
+    isDragHandle: (target) => target.classList.contains('my-panel-header')
+  })
+
+  return (
+    <div className="review-overlay">
+      {selection.hoveredRect && (
+        <div
+          className="highlight-box hover-box"
+          style={{
+            left: selection.hoveredRect.x,
+            top: selection.hoveredRect.y,
+            width: selection.hoveredRect.width,
+            height: selection.hoveredRect.height
+          }}
+        />
+      )}
+      {selection.selectedElements.map((item) => (
+        <div
+          key={item.selector}
+          className="highlight-box selected-box"
+          style={{
+            left: item.rect.x,
+            top: item.rect.y,
+            width: item.rect.width,
+            height: item.rect.height
+          }}
+        />
+      ))}
+      {boxing.selectedBoxes.map((box) => (
+        <div
+          key={box.id}
+          className="drag-rect selected-box"
+          style={{
+            left: boxing.toViewportRect(box.rect).x,
+            top: boxing.toViewportRect(box.rect).y,
+            width: box.rect.width,
+            height: box.rect.height
+          }}
+        />
+      ))}
+      <div
+        className="my-panel"
+        style={{
+          left: `calc(50% + ${panel.position.x}px)`,
+          top: `calc(50% + ${panel.position.y}px)`,
+          width: panel.size.width
+        }}
+        onMouseDown={panel.onDragStart}
+      >
+        <div className="my-panel-header">Draggable Panel</div>
+        <div className="panel-resize-handle" onMouseDown={panel.onResizeStart} />
+      </div>
+    </div>
+  )
+}
+```
+
+### Hook APIs
+
+| Hook | Purpose | Key returned values |
+| --- | --- | --- |
+| `useElementSelection({ active, mode, onIgnoreTarget })` | Element hover / selection | `hoveredRect`, `hoveredTag`, `selectedElements`, `selectElement`, `removeSelectedElement`, `clearSelectedElements` |
+| `useViewportBoxing({ active, mode, onIgnoreTarget, onBoxCreate })` | Viewport boxing | `selectedBoxes`, `dragRect`, `resizingBoxId`, `removeBox`, `clearBoxes`, `startResize`, `toViewportRect` |
+| `useDragResize({ initialPosition, initialSize, isDragHandle, minWidth, minHeight, measureRef })` | Panel drag / resize | `position`, `size`, `isDragging`, `isResizing`, `onDragStart`, `onResizeStart` |
+
+These hooks do **not** depend on `usePageReview`; they only manage interaction state and can be combined with any data layer.
 
 ---
 

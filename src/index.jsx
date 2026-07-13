@@ -19,4 +19,7 @@ export {
   generateScreenshotFilename,
   SCREENSHOT_TYPES
 } from './screenshot.js'
+export { useElementSelection } from './hooks/useElementSelection.js'
+export { useViewportBoxing } from './hooks/useViewportBoxing.js'
+export { useDragResize } from './hooks/useDragResize.js'
 export default ReviewTool

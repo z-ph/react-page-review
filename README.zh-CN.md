@@ -11,7 +11,8 @@
 - 可拖动工具栏与评审弹窗
 - localStorage 持久化
 - 导出：JSON / Markdown / ZIP（含截图）
-- 无额外 UI 组件库依赖（使用原生 React 元素 + 自定义样式）
+- 可选 Ant Design peer dependency，默认 UI 按需引入
+- 无头交互 hooks，可用于自定义评审界面
 
 ## 安装
 
@@ -23,6 +24,12 @@ Peer dependencies：
 
 ```bash
 npm install react react-dom
+```
+
+如果使用默认的 `ReviewTool` UI，还需安装可选 peer dependency：
+
+```bash
+npm install antd
 ```
 
 ## 使用
@@ -67,6 +74,26 @@ const { reviews, addReview, exportToJSON, exportToZIP } = usePageReview({
   storageKey: 'my-reviews'
 })
 ```
+
+## 无头交互 Hooks
+
+以下 hooks 可以独立使用，用于构建自定义评审 UI：
+
+```js
+import {
+  useElementSelection,
+  useViewportBoxing,
+  useDragResize
+} from 'react-page-review'
+
+const selection = useElementSelection({ active, mode: 'element', onIgnoreTarget })
+const boxing = useViewportBoxing({ active, mode: 'viewport', onIgnoreTarget })
+const panel = useDragResize({ initialPosition, initialSize, isDragHandle })
+```
+
+- `useElementSelection` — 悬停检测、点击选择、Ctrl/Cmd 多选、滚动跟随高亮框。
+- `useViewportBoxing` — 拖拽创建框选、8 方向调整大小、多框选。
+- `useDragResize` — 通用浮动面板拖拽与尺寸调整（工具栏、弹窗、抽屉）。
 
 ## 详细文档
 

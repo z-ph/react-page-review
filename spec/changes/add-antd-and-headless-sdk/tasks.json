@@ -1,0 +1,63 @@
+# 实施任务
+```json
+[
+  {
+    "number": 1,
+    "category": "阶段 1：依赖与配置",
+    "task": "引入 antd 为可选 peer dependency 并配置按需引入",
+    "steps": [
+      { "step": "将 antd 加入 package.json peerDependencies（标记为 optional）", "completed": false },
+      { "step": "更新 vite.config.js 使其支持 tree-shaking 外部化", "completed": false },
+      { "step": "运行 pnpm install 验证安装", "completed": false }
+    ],
+    "passes": false
+  },
+  {
+    "number": 2,
+    "category": "阶段 2：暴露无头 hooks",
+    "task": "从 ReviewTool.jsx 抽取交互逻辑为独立 hooks",
+    "steps": [
+      { "step": "创建 src/hooks/useElementSelection.js：hover/click 选择、Ctrl/Cmd 多选、滚动跟随", "completed": false },
+      { "step": "创建 src/hooks/useViewportBoxing.js：拖拽创建框选、8 方向调整大小、多框选", "completed": false },
+      { "step": "创建 src/hooks/useDragResize.js：通用面板拖拽与尺寸调整", "completed": false },
+      { "step": "在 src/index.jsx 中导出所有新 hooks", "completed": false }
+    ],
+    "passes": false
+  },
+  {
+    "number": 3,
+    "category": "阶段 3：ReviewTool 使用 antd 重构 UI",
+    "task": "引入 antd 组件并改进工具栏布局",
+    "steps": [
+      { "step": "ReviewTool.jsx 引入 antd 组件（Button、Dropdown、Modal、Drawer 等）", "completed": false },
+      { "step": "将导出下拉改为点击触发（click）", "completed": false },
+      { "step": "把次要操作（组件树、评审列表、导出、取消选择）收进一个下拉菜单", "completed": false },
+      { "step": "保留弹窗和抽屉的拖拽/缩放能力", "completed": false }
+    ],
+    "passes": false
+  },
+  {
+    "number": 4,
+    "category": "阶段 4：ReviewTool 使用无头 hooks",
+    "task": "让 ReviewTool 复用新 hooks 而不是内联逻辑",
+    "steps": [
+      { "step": "在 ReviewTool.jsx 中引入 useElementSelection、useViewportBoxing、useDragResize", "completed": false },
+      { "step": "删除组件内重复的交互逻辑", "completed": false },
+      { "step": "保持现有 props、callbacks 与行为不变", "completed": false }
+    ],
+    "passes": false
+  },
+  {
+    "number": 5,
+    "category": "阶段 5：文档与测试",
+    "task": "更新文档并验证构建",
+    "steps": [
+      { "step": "更新 README.md / README.zh-CN.md：新增 antd peer dependency 说明", "completed": false },
+      { "step": "更新 docs/usage.md / usage.en.md：新增无头 hooks 使用示例", "completed": false },
+      { "step": "运行 pnpm build 验证构建成功", "completed": false },
+      { "step": "在示例项目中验证核心功能正常", "completed": false }
+    ],
+    "passes": false
+  }
+]
+```

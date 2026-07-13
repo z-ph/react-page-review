@@ -49,13 +49,13 @@
   gap: 16px;
 }
 
-.toolbar-title {
+.review-toolbar-title {
   font-weight: bold;
   color: #001529;
   cursor: grab;
 }
 
-.toolbar-title:active {
+.review-toolbar-title:active {
   cursor: grabbing;
 }
 
@@ -333,6 +333,24 @@ button.danger-text {
 
 .review-modal.is-dragging {
   user-select: none;
+}
+
+.review-modal-header {
+  cursor: grab;
+  user-select: none;
+}
+
+.review-modal-header:active {
+  cursor: grabbing;
+}
+
+.review-modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #909399;
+  line-height: 1;
 }
 
 .review-modal .modal-header {

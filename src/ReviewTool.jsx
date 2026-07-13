@@ -1,6 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
+import {
+  Button,
+  Dropdown,
+  Modal,
+  Drawer,
+  Radio,
+  Checkbox,
+  Input,
+  Select,
+  Tag,
+  Badge,
+  Card,
+  Empty
+} from 'antd'
 import { usePageReview } from './useReview.js'
+import { useElementSelection } from './hooks/useElementSelection.js'
+import { useViewportBoxing } from './hooks/useViewportBoxing.js'
+import { useDragResize } from './hooks/useDragResize.js'
 import {
   SCREENSHOT_TYPES,
   generateScreenshotFilename,
@@ -50,38 +67,8 @@ export default function ReviewTool({
   const [listVisible, setListVisible] = useState(false)
   const [treeVisible, setTreeVisible] = useState(false)
 
-  const [hoveredRect, setHoveredRect] = useState(null)
-  const [hoveredTag, setHoveredTag] = useState('')
-  const [selectedElements, setSelectedElements] = useState([])
-  const [selectedBoxes, setSelectedBoxes] = useState([])
-  const boxCounterRef = useRef(0)
-
   const [treeHoverRect, setTreeHoverRect] = useState(null)
   const [componentTree, setComponentTree] = useState(null)
-
-  const [scrollPos, setScrollPos] = useState({ x: window.scrollX, y: window.scrollY })
-
-  const [dragRect, setDragRect] = useState(null)
-  const isDraggingBoxRef = useRef(false)
-  const dragStartRef = useRef({ x: 0, y: 0 })
-
-  const [resizingBoxId, setResizingBoxId] = useState(null)
-  const resizeHandleRef = useRef('')
-  const resizeStartRef = useRef({ x: 0, y: 0, rect: null })
-
-  const [toolbarPos, setToolbarPos] = useState({ x: 0, y: 0 })
-  const [toolbarSize, setToolbarSize] = useState({ width: null, height: null })
-  const isDraggingToolbarRef = useRef(false)
-  const toolbarDragStartRef = useRef({ x: 0, y: 0 })
-  const isResizingToolbarRef = useRef(false)
-  const toolbarResizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 })
-
-  const [modalPos, setModalPos] = useState({ x: 0, y: 0 })
-  const [modalSize, setModalSize] = useState({ width: 560, height: null })
-  const isDraggingModalRef = useRef(false)
-  const modalDragStartRef = useRef({ x: 0, y: 0 })
-  const isResizingModalRef = useRef(false)
-  const modalResizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 })
 
   const [selectedScreenshots, setSelectedScreenshots] = useState([])
   const [confirm, setConfirm] = useState(null)
@@ -101,7 +88,65 @@ export default function ReviewTool({
     locators: null
   })
 
-  const selectedCount = selectedElements.length + selectedBoxes.length
+  const panelInteractingRef = useRef(false)
+  const toolbarRef = useRef(null)
+
+  const onIgnoreTarget = useCallback((target) => {
+    if (panelInteractingRef.current) return true
+    return !!target.closest('.review-overlay')
+  }, [])
+
+  const selection = useElementSelection({
+    active: active && !formVisible,
+    mode,
+    onIgnoreTarget
+  })
+
+  const handleBoxCreate = useCallback((box, e) => {
+    if (!isMultiSelectKey(e)) {
+      selection.clearSelectedElements()
+    }
+  }, [selection.clearSelectedElements])
+
+  const boxing = useViewportBoxing({
+    active: active && !formVisible,
+    mode,
+    onIgnoreTarget,
+    onBoxCreate: handleBoxCreate
+  })
+
+  const toolbarDrag = useDragResize({
+    initialPosition: { x: 0, y: 0 },
+    initialSize: { width: null, height: null },
+    minWidth: 400,
+    minHeight: 48,
+    isDragHandle: (target) =>
+      target.classList?.contains('review-toolbar-title') ||
+      target.classList?.contains('review-toolbar'),
+    measureRef: toolbarRef
+  })
+
+  const modalDrag = useDragResize({
+    initialPosition: { x: 0, y: 0 },
+    initialSize: { width: 560, height: null },
+    minWidth: 360,
+    minHeight: 300,
+    isDragHandle: (target) => {
+      const header = target.closest('.ant-modal-header')
+      const close = target.closest('.ant-modal-close')
+      return !!header && !close
+    }
+  })
+
+  useEffect(() => {
+    panelInteractingRef.current =
+      toolbarDrag.isDragging ||
+      toolbarDrag.isResizing ||
+      modalDrag.isDragging ||
+      modalDrag.isResizing
+  }, [toolbarDrag.isDragging, toolbarDrag.isResizing, modalDrag.isDragging, modalDrag.isResizing])
+
+  const selectedCount = selection.selectedElements.length + boxing.selectedBoxes.length
   const canSubmit = form.title.trim() && form.suggestion.trim()
 
   const close = useCallback(() => {
@@ -116,55 +161,6 @@ export default function ReviewTool({
     pageName: pageName || resolvedPagePath
   }), [resolvedPagePath, pageName])
 
-  const toViewportRect = useCallback((rect) => {
-    if (!rect) return null
-    return {
-      x: rect.x - scrollPos.x,
-      y: rect.y - scrollPos.y,
-      width: rect.width,
-      height: rect.height
-    }
-  }, [scrollPos])
-
-  const getElementSelector = useCallback((el) => {
-    if (el.id) return '#' + el.id
-    if (el.className) {
-      const classes = String(el.className).split(/\s+/).filter(c => c && !c.startsWith('el-')).slice(0, 2)
-      if (classes.length) return el.tagName.toLowerCase() + '.' + classes.join('.')
-    }
-    let path = []
-    let node = el
-    while (node && node !== document.body) {
-      let name = node.tagName.toLowerCase()
-      if (node.id) {
-        name += '#' + node.id
-        path.unshift(name)
-        break
-      }
-      const siblings = Array.from(node.parentNode?.children || [])
-      const same = siblings.filter(s => s.tagName === node.tagName)
-      if (same.length > 1) {
-        const idx = same.indexOf(node) + 1
-        name += `:nth-of-type(${idx})`
-      }
-      path.unshift(name)
-      node = node.parentNode
-    }
-    return path.join(' > ')
-  }, [])
-
-  const getSafeTarget = useCallback((e) => {
-    const target = e.target
-    if (!target || !(target instanceof Element)) return null
-    if (target.closest('.review-overlay')) return null
-    if (target.closest('.dropdown-menu')) return null
-    if (target.closest('.modal')) return null
-    if (target.closest('.drawer')) return null
-    return target
-  }, [])
-
-  const isMultiSelectKey = useCallback((e) => e.ctrlKey || e.metaKey, [])
-
   const buildLocators = useCallback((nodeInfo) => {
     const locators = {}
     if (nodeInfo.selector) locators.cssSelector = nodeInfo.selector
@@ -176,7 +172,7 @@ export default function ReviewTool({
 
   const buildTargets = useCallback(() => {
     const targets = []
-    selectedElements.forEach(item => {
+    selection.selectedElements.forEach(item => {
       const nodeInfo = item.el ? getNodeInfo(item.el) : null
       targets.push({
         type: 'element',
@@ -188,14 +184,14 @@ export default function ReviewTool({
         locators: nodeInfo ? buildLocators(nodeInfo) : null
       })
     })
-    selectedBoxes.forEach(box => {
+    boxing.selectedBoxes.forEach(box => {
       targets.push({
         type: 'viewport',
         viewportRect: box.rect
       })
     })
     return targets
-  }, [selectedElements, selectedBoxes, buildLocators])
+  }, [selection.selectedElements, boxing.selectedBoxes, buildLocators])
 
   const resetForm = useCallback(() => {
     setSelectedScreenshots([])
@@ -216,20 +212,19 @@ export default function ReviewTool({
   }, [])
 
   const clearAllSelections = useCallback(() => {
-    setSelectedElements([])
-    setSelectedBoxes([])
+    selection.clearSelectedElements()
+    boxing.clearBoxes()
     setComponentTree(null)
-    setDragRect(null)
-  }, [])
+  }, [selection.clearSelectedElements, boxing.clearBoxes])
 
   const openReviewForm = useCallback(() => {
     const env = captureEnv()
     const targets = buildTargets()
-    const firstElement = selectedElements[0]
+    const firstElement = selection.selectedElements[0]
     const nodeInfo = firstElement?.el ? getNodeInfo(firstElement.el) : null
 
     setForm({
-      type: selectedElements.length > 0 ? 'element' : 'viewport',
+      type: selection.selectedElements.length > 0 ? 'element' : 'viewport',
       title: '',
       severity: 'medium',
       suggestion: '',
@@ -244,7 +239,7 @@ export default function ReviewTool({
     })
     setSelectedScreenshots([])
     setFormVisible(true)
-  }, [captureEnv, buildTargets, selectedElements, buildLocators])
+  }, [captureEnv, buildTargets, selection.selectedElements, buildLocators])
 
   const captureScreenshots = useCallback(async () => {
     const screenshots = []
@@ -367,308 +362,22 @@ export default function ReviewTool({
     if (!node.selector) return
     const el = document.querySelector(node.selector)
     if (!el) return
-    const rect = el.getBoundingClientRect()
-    setSelectedElements([{
-      el,
-      selector: node.selector,
-      tag: el.tagName.toLowerCase(),
-      text: el.innerText?.slice(0, 40) || '',
-      rect: {
-        x: rect.left,
-        y: rect.top,
-        width: rect.width,
-        height: rect.height
-      },
-      docRect: {
-        x: rect.left + window.scrollX,
-        y: rect.top + window.scrollY,
-        width: rect.width,
-        height: rect.height
-      }
-    }])
-    setSelectedBoxes([])
-    setComponentTree(getComponentTree(el))
+    selection.selectElement(el)
+    boxing.clearBoxes()
     setTreeVisible(false)
-  }, [])
-
-  const removeSelectedElement = useCallback((item) => {
-    setSelectedElements(prev => {
-      const next = prev.filter(s => s.el !== item.el)
-      if (next.length === 0) setComponentTree(null)
-      return next
-    })
-  }, [])
-
-  const removeSelectedBox = useCallback((box) => {
-    setSelectedBoxes(prev => {
-      const next = prev.filter(b => b.id !== box.id)
-      next.forEach((b, idx) => { b.index = idx })
-      return next
-    })
-  }, [])
+  }, [selection.selectElement, boxing.clearBoxes])
 
   const onSelectedElementClick = useCallback((item, e) => {
     if (!isMultiSelectKey(e)) return
     e.stopPropagation()
-    removeSelectedElement(item)
-  }, [isMultiSelectKey, removeSelectedElement])
+    selection.removeSelectedElement(item)
+  }, [selection.removeSelectedElement])
 
   const onBoxMouseDown = useCallback((box, e) => {
     if (!isMultiSelectKey(e)) return
     e.stopPropagation()
-    removeSelectedBox(box)
-  }, [isMultiSelectKey, removeSelectedBox])
-
-  const onMouseMove = useCallback((e) => {
-    if (isDraggingToolbarRef.current) return
-    if (resizingBoxId) return
-    if (mode !== 'element' || formVisible || isDraggingBoxRef.current) return
-    const target = getSafeTarget(e)
-    if (!target) {
-      setHoveredRect(null)
-      return
-    }
-    const rect = target.getBoundingClientRect()
-    setHoveredRect({
-      x: rect.left,
-      y: rect.top,
-      width: rect.width,
-      height: rect.height
-    })
-    setHoveredTag(target.tagName.toLowerCase())
-  }, [mode, formVisible, resizingBoxId, getSafeTarget])
-
-  const onMouseOut = useCallback(() => {
-    setHoveredRect(null)
-  }, [])
-
-  const onElementClick = useCallback((e) => {
-    if (mode !== 'element' || formVisible || isDraggingBoxRef.current || resizingBoxId) return
-    const target = getSafeTarget(e)
-    if (!target) return
-    e.preventDefault()
-    e.stopPropagation()
-
-    const rect = target.getBoundingClientRect()
-    const item = {
-      el: target,
-      selector: getElementSelector(target),
-      tag: target.tagName.toLowerCase(),
-      text: target.innerText?.slice(0, 40) || '',
-      rect: {
-        x: rect.left,
-        y: rect.top,
-        width: rect.width,
-        height: rect.height
-      },
-      docRect: {
-        x: rect.left + window.scrollX,
-        y: rect.top + window.scrollY,
-        width: rect.width,
-        height: rect.height
-      }
-    }
-
-    if (isMultiSelectKey(e)) {
-      setSelectedElements(prev => {
-        const idx = prev.findIndex(s => s.el === target)
-        if (idx > -1) {
-          const next = prev.filter((_, i) => i !== idx)
-          if (next.length === 0) setComponentTree(null)
-          return next
-        }
-        return [...prev, item]
-      })
-    } else {
-      setSelectedElements([item])
-      setSelectedBoxes([])
-      setComponentTree(getComponentTree(target))
-    }
-  }, [mode, formVisible, resizingBoxId, getSafeTarget, getElementSelector, isMultiSelectKey])
-
-  const onMouseDown = useCallback((e) => {
-    if (isDraggingToolbarRef.current) return
-    if (mode !== 'viewport' || formVisible || resizingBoxId) return
-    if (!getSafeTarget(e)) return
-    e.preventDefault()
-    isDraggingBoxRef.current = true
-    dragStartRef.current = { x: e.clientX, y: e.clientY }
-    setDragRect({ x: dragStartRef.current.x, y: dragStartRef.current.y, width: 0, height: 0 })
-  }, [mode, formVisible, resizingBoxId, getSafeTarget])
-
-  const onResizeMove = useCallback((e) => {
-    if (!resizingBoxId || !resizeStartRef.current.rect) return
-    const dx = e.clientX + window.scrollX - resizeStartRef.current.x
-    const dy = e.clientY + window.scrollY - resizeStartRef.current.y
-    const orig = resizeStartRef.current.rect
-
-    setSelectedBoxes(prev => {
-      const box = prev.find(b => b.id === resizingBoxId)
-      if (!box) return prev
-      let { x, y, width, height } = orig
-      if (resizeHandleRef.current.includes('e')) width = Math.max(10, orig.width + dx)
-      if (resizeHandleRef.current.includes('s')) height = Math.max(10, orig.height + dy)
-      if (resizeHandleRef.current.includes('w')) {
-        width = Math.max(10, orig.width - dx)
-        x = orig.x + (orig.width - width)
-      }
-      if (resizeHandleRef.current.includes('n')) {
-        height = Math.max(10, orig.height - dy)
-        y = orig.y + (orig.height - height)
-      }
-      return prev.map(b => b.id === resizingBoxId ? { ...b, rect: { x, y, width, height } } : b)
-    })
-  }, [resizingBoxId])
-
-  const onMouseMoveDrag = useCallback((e) => {
-    if (isDraggingToolbarRef.current) return
-    if (resizingBoxId) {
-      onResizeMove(e)
-      return
-    }
-    if (!isDraggingBoxRef.current) return
-    const x = e.clientX
-    const y = e.clientY
-    setDragRect({
-      x: Math.min(dragStartRef.current.x, x),
-      y: Math.min(dragStartRef.current.y, y),
-      width: Math.abs(x - dragStartRef.current.x),
-      height: Math.abs(y - dragStartRef.current.y)
-    })
-  }, [resizingBoxId, onResizeMove])
-
-  const onMouseUp = useCallback((e) => {
-    if (isDraggingToolbarRef.current) {
-      isDraggingToolbarRef.current = false
-      return
-    }
-    if (isResizingToolbarRef.current) {
-      isResizingToolbarRef.current = false
-      return
-    }
-    if (isDraggingModalRef.current) {
-      isDraggingModalRef.current = false
-      return
-    }
-    if (isResizingModalRef.current) {
-      isResizingModalRef.current = false
-      return
-    }
-    if (resizingBoxId) {
-      setResizingBoxId(null)
-      resizeHandleRef.current = ''
-      resizeStartRef.current = { x: 0, y: 0, rect: null }
-      return
-    }
-    if (!isDraggingBoxRef.current) return
-    isDraggingBoxRef.current = false
-    setDragRect(prev => {
-      if (prev && prev.width > 10 && prev.height > 10) {
-        if (!isMultiSelectKey(e)) {
-          setSelectedElements([])
-        }
-        setSelectedBoxes(boxes => {
-          const next = [...boxes, {
-            id: 'box-' + Date.now() + '-' + boxCounterRef.current++,
-            index: boxes.length,
-            rect: {
-              x: prev.x + window.scrollX,
-              y: prev.y + window.scrollY,
-              width: prev.width,
-              height: prev.height
-            }
-          }]
-          return next
-        })
-      }
-      return null
-    })
-  }, [resizingBoxId, isMultiSelectKey])
-
-  const onResizeStart = useCallback((box, position, e) => {
-    setResizingBoxId(box.id)
-    resizeHandleRef.current = position
-    resizeStartRef.current = {
-      x: e.clientX + window.scrollX,
-      y: e.clientY + window.scrollY,
-      rect: { ...box.rect }
-    }
-  }, [])
-
-  const onToolbarMouseDown = useCallback((e) => {
-    const isDragHandle = e.target.classList?.contains('toolbar-title') || e.target.classList?.contains('review-toolbar')
-    if (!isDragHandle) return
-    isDraggingToolbarRef.current = true
-    toolbarDragStartRef.current = {
-      x: e.clientX - toolbarPos.x,
-      y: e.clientY - toolbarPos.y
-    }
-  }, [toolbarPos])
-
-  const onToolbarMouseMove = useCallback((e) => {
-    if (isDraggingToolbarRef.current) {
-      setToolbarPos({
-        x: e.clientX - toolbarDragStartRef.current.x,
-        y: e.clientY - toolbarDragStartRef.current.y
-      })
-      return
-    }
-    if (isResizingToolbarRef.current) {
-      const dx = e.clientX - toolbarResizeStartRef.current.x
-      const dy = e.clientY - toolbarResizeStartRef.current.y
-      setToolbarSize({
-        width: Math.max(400, toolbarResizeStartRef.current.width + dx),
-        height: Math.max(48, toolbarResizeStartRef.current.height + dy)
-      })
-    }
-  }, [])
-
-  const onToolbarResizeStart = useCallback((e) => {
-    isResizingToolbarRef.current = true
-    const toolbarEl = e.target.closest('.review-toolbar')
-    const rect = toolbarEl?.getBoundingClientRect()
-    toolbarResizeStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      width: rect?.width || 0,
-      height: rect?.height || 0
-    }
-  }, [])
-
-  const onModalHeaderMouseDown = useCallback((e) => {
-    if (!e.target.classList?.contains('modal-header')) return
-    isDraggingModalRef.current = true
-    modalDragStartRef.current = {
-      x: e.clientX - modalPos.x,
-      y: e.clientY - modalPos.y
-    }
-  }, [modalPos])
-
-  const onModalMouseMove = useCallback((e) => {
-    if (isDraggingModalRef.current) {
-      setModalPos({
-        x: e.clientX - modalDragStartRef.current.x,
-        y: e.clientY - modalDragStartRef.current.y
-      })
-    } else if (isResizingModalRef.current) {
-      const dx = e.clientX - modalResizeStartRef.current.x
-      const dy = e.clientY - modalResizeStartRef.current.y
-      setModalSize({
-        width: Math.max(360, modalResizeStartRef.current.width + dx),
-        height: Math.max(300, modalResizeStartRef.current.height + dy)
-      })
-    }
-  }, [])
-
-  const onModalResizeStart = useCallback((e) => {
-    isResizingModalRef.current = true
-    modalResizeStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      width: modalSize.width,
-      height: modalSize.height
-    }
-  }, [modalSize])
+    boxing.removeBox(box)
+  }, [boxing.removeBox])
 
   const onKeyDown = useCallback((e) => {
     if (e.key === 'Escape') {
@@ -677,62 +386,18 @@ export default function ReviewTool({
     }
   }, [formVisible, close])
 
-  const handleOverlayClick = useCallback(() => {}, [])
-
   const openTreePanel = useCallback(() => {
-    if (selectedElements.length === 0) {
+    if (selection.selectedElements.length === 0) {
       setComponentTree(null)
     }
     setTreeVisible(true)
-  }, [selectedElements.length])
+  }, [selection.selectedElements.length])
 
   useEffect(() => {
     if (!active) return
-    document.addEventListener('mousemove', onMouseMove)
-    document.addEventListener('mouseout', onMouseOut)
-    document.addEventListener('click', onElementClick, true)
-    document.addEventListener('mousedown', onMouseDown)
-    document.addEventListener('mousemove', onMouseMoveDrag)
-    document.addEventListener('mousemove', onToolbarMouseMove)
-    document.addEventListener('mousemove', onModalMouseMove)
-    document.addEventListener('mouseup', onMouseUp)
     document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('mousemove', onMouseMove)
-      document.removeEventListener('mouseout', onMouseOut)
-      document.removeEventListener('click', onElementClick, true)
-      document.removeEventListener('mousedown', onMouseDown)
-      document.removeEventListener('mousemove', onMouseMoveDrag)
-      document.removeEventListener('mousemove', onToolbarMouseMove)
-      document.removeEventListener('mousemove', onModalMouseMove)
-      document.removeEventListener('mouseup', onMouseUp)
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [active, onMouseMove, onMouseOut, onElementClick, onMouseDown, onMouseMoveDrag, onToolbarMouseMove, onModalMouseMove, onMouseUp, onKeyDown])
-
-  useEffect(() => {
-    if (!active) return
-    const onScroll = () => {
-      setScrollPos({ x: window.scrollX, y: window.scrollY })
-      setSelectedElements(prev => prev.map(item => {
-        const el = item.el || document.querySelector(item.selector)
-        if (!el) return item
-        const rect = el.getBoundingClientRect()
-        return {
-          ...item,
-          el,
-          rect: {
-            x: rect.left,
-            y: rect.top,
-            width: rect.width,
-            height: rect.height
-          }
-        }
-      }))
-    }
-    window.addEventListener('scroll', onScroll, true)
-    return () => window.removeEventListener('scroll', onScroll, true)
-  }, [active])
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [active, onKeyDown])
 
   useEffect(() => {
     if (active) {
@@ -740,83 +405,135 @@ export default function ReviewTool({
     } else {
       clearAllSelections()
       resetForm()
-      setHoveredRect(null)
       setListVisible(false)
       setTreeVisible(false)
+      setConfirm(null)
     }
   }, [active, clearAllSelections, resetForm])
 
+  useEffect(() => {
+    if (selection.selectedElements.length > 0) {
+      setComponentTree(getComponentTree(selection.selectedElements[0].el))
+    } else {
+      setComponentTree(null)
+    }
+  }, [selection.selectedElements])
+
+  const moreMenuItems = useMemo(() => {
+    const items = []
+    if (enableComponentTree) {
+      items.push({ key: 'tree', label: '组件树' })
+    }
+    items.push({ key: 'list', label: '评审列表' })
+    items.push({ type: 'divider' })
+    items.push({ key: 'export-md', label: '导出 Markdown' })
+    items.push({ key: 'export-json', label: '导出 JSON' })
+    if (enableZipExport) {
+      items.push({ key: 'export-zip', label: '导出 ZIP' })
+    }
+    items.push({ type: 'divider' })
+    items.push({ key: 'clear', label: '取消选择', disabled: selectedCount === 0 })
+    return items
+  }, [enableComponentTree, enableZipExport, selectedCount])
+
+  const handleMoreClick = useCallback(({ key }) => {
+    switch (key) {
+      case 'tree':
+        openTreePanel()
+        break
+      case 'list':
+        setListVisible(true)
+        break
+      case 'export-md':
+        handleExportMarkdown()
+        break
+      case 'export-json':
+        handleExportJSON()
+        break
+      case 'export-zip':
+        handleExportZIP()
+        break
+      case 'clear':
+        clearAllSelections()
+        break
+      default:
+        break
+    }
+  }, [openTreePanel, handleExportMarkdown, handleExportJSON, handleExportZIP, clearAllSelections])
+
   const toolbarStyle = {
-    transform: `translate(calc(-50% + ${toolbarPos.x}px), ${toolbarPos.y}px)`
+    transform: `translate(calc(-50% + ${toolbarDrag.position.x}px), ${toolbarDrag.position.y}px)`,
+    width: toolbarDrag.size.width ?? undefined,
+    height: toolbarDrag.size.height ?? undefined
   }
-  if (toolbarSize.width) toolbarStyle.width = toolbarSize.width + 'px'
-  if (toolbarSize.height) toolbarStyle.height = toolbarSize.height + 'px'
 
   const modalStyle = {
-    left: `calc(50% + ${modalPos.x}px)`,
-    top: `calc(50% + ${modalPos.y}px)`,
+    position: 'fixed',
+    left: `calc(50% + ${modalDrag.position.x}px)`,
+    top: `calc(50% + ${modalDrag.position.y}px)`,
     transform: 'translate(-50%, -50%)',
-    width: modalSize.width + 'px'
+    height: modalDrag.size.height ?? undefined
   }
-  if (modalSize.height) modalStyle.height = modalSize.height + 'px'
 
   const resizeHandlePositions = ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se']
 
   if (!active) return null
 
   return createPortal(
-    <div className="review-overlay" onClick={handleOverlayClick}>
+    <div className="review-overlay">
       <div
-        className={`review-toolbar ${isDraggingToolbarRef.current ? 'is-dragging' : ''}`}
+        ref={toolbarRef}
+        className={`review-toolbar ${toolbarDrag.isDragging ? 'is-dragging' : ''}`}
         style={toolbarStyle}
         onClick={(e) => e.stopPropagation()}
-        onMouseDown={onToolbarMouseDown}
+        onMouseDown={toolbarDrag.onDragStart}
       >
         <div className="toolbar-left">
-          <span className="toolbar-title" title="按住此处可拖动">页面评审模式</span>
-          <div className="radio-group">
-            <button className={mode === 'element' ? 'active' : ''} onClick={() => setMode('element')}>选择元素</button>
-            <button className={mode === 'viewport' ? 'active' : ''} onClick={() => setMode('viewport')}>框定视图</button>
-          </div>
+          <span className="review-toolbar-title" title="按住此处可拖动">页面评审模式</span>
+          <Radio.Group
+            size="small"
+            value={mode}
+            onChange={(e) => setMode(e.target.value)}
+            optionType="button"
+            buttonStyle="solid"
+          >
+            <Radio.Button value="element">选择元素</Radio.Button>
+            <Radio.Button value="viewport">框定视图</Radio.Button>
+          </Radio.Group>
         </div>
         <div className="toolbar-right">
-          {enableComponentTree && <button onClick={openTreePanel}>组件树</button>}
-          <button
-            className="primary"
-            disabled={selectedCount === 0}
-            onClick={openReviewForm}
+          <Badge count={selectedCount} size="small" offset={[10, -2]}>
+            <Button
+              type="primary"
+              size="small"
+              disabled={selectedCount === 0}
+              onClick={openReviewForm}
+            >
+              评审
+            </Button>
+          </Badge>
+          <Button type="primary" danger size="small" onClick={close}>
+            退出评审
+          </Button>
+          <Dropdown
+            menu={{ items: moreMenuItems, onClick: handleMoreClick }}
+            trigger={['click']}
+            placement="bottomRight"
+            getPopupContainer={(triggerNode) => triggerNode.parentNode}
           >
-            评审 ({selectedCount})
-          </button>
-          <button
-            disabled={selectedCount === 0}
-            onClick={clearAllSelections}
-          >
-            取消选择
-          </button>
-          <button className="badge-btn" onClick={() => setListVisible(true)}>
-            评审列表 <span className="badge">{pageReviews.length}</span>
-          </button>
-          <div className="dropdown">
-            <button className="primary" onClick={handleExportMarkdown}>导出</button>
-            <div className="dropdown-menu">
-              <div onClick={handleExportMarkdown}>导出为 Markdown</div>
-              <div onClick={handleExportJSON}>导出为 JSON</div>
-              {enableZipExport && <div onClick={handleExportZIP}>导出为 ZIP</div>}
-            </div>
-          </div>
-          <button className="danger" onClick={close}>退出评审</button>
+            <Button size="small">更多</Button>
+          </Dropdown>
         </div>
-        <div className="toolbar-resize-handle" onMouseDown={onToolbarResizeStart} />
+        <div className="toolbar-resize-handle" onMouseDown={toolbarDrag.onResizeStart} />
       </div>
 
-      {hoveredRect && mode === 'element' && !isDraggingBoxRef.current && !resizingBoxId && (
-        <div className="highlight-box hover-box" style={highlightStyle(hoveredRect)}>
-          <span className="highlight-label">{hoveredTag}</span>
+      {selection.hoveredRect && mode === 'element' && !boxing.isResizing && !boxing.dragRect && (
+        <div className="highlight-box hover-box" style={highlightStyle(selection.hoveredRect)}>
+          <span className="highlight-label">{selection.hoveredTag}</span>
         </div>
       )}
 
-      {selectedElements.map((item, idx) => (
+      {selection.selectedElements.map((item, idx) => (
         <div
           key={'el-' + idx}
           className="highlight-box selected-box"
@@ -825,265 +542,256 @@ export default function ReviewTool({
         >
           <span className="highlight-label">
             {item.tag}
-            <i className="remove-icon" onClick={(e) => { e.stopPropagation(); removeSelectedElement(item) }}>×</i>
+            <i className="remove-icon" onClick={(e) => { e.stopPropagation(); selection.removeSelectedElement(item) }}>×</i>
           </span>
         </div>
       ))}
 
       {treeHoverRect && (
-        <div className="highlight-box tree-hover-box" style={highlightStyle(toViewportRect(treeHoverRect))} />
+        <div className="highlight-box tree-hover-box" style={highlightStyle(boxing.toViewportRect(treeHoverRect))} />
       )}
 
-      {selectedBoxes.map(box => (
+      {boxing.selectedBoxes.map(box => (
         <div
           key={box.id}
-          className={`drag-rect selected-box ${resizingBoxId === box.id ? 'is-resizing' : ''}`}
-          style={boxStyle(toViewportRect(box.rect))}
+          className={`drag-rect selected-box ${boxing.resizingBoxId === box.id ? 'is-resizing' : ''}`}
+          style={boxStyle(boxing.toViewportRect(box.rect))}
           onMouseDown={(e) => onBoxMouseDown(box, e)}
         >
           <span className="box-label" onMouseDown={(e) => e.stopPropagation()}>
             框选 {box.index + 1}
-            <i className="remove-icon" onClick={(e) => { e.stopPropagation(); removeSelectedBox(box) }}>×</i>
+            <i className="remove-icon" onClick={(e) => { e.stopPropagation(); boxing.removeBox(box) }}>×</i>
           </span>
           {resizeHandlePositions.map(position => (
             <div
               key={position}
               className={`resize-handle handle-${position}`}
-              style={handleStyle(position, box.rect)}
-              onMouseDown={(e) => onResizeStart(box, position, e)}
+              style={handleStyle(position, boxing.toViewportRect(box.rect))}
+              onMouseDown={(e) => boxing.startResize(box, position, e)}
             />
           ))}
         </div>
       ))}
 
-      {dragRect && (
-        <div className="drag-rect preview-box" style={boxStyle(dragRect)} />
+      {boxing.dragRect && (
+        <div className="drag-rect preview-box" style={boxStyle(boxing.dragRect)} />
       )}
 
-      {formVisible && (
-        <div className="modal-backdrop" onClick={() => setFormVisible(false)} />
-      )}
-
-      {formVisible && (
-        <div
-          className={`modal review-modal ${isDraggingModalRef.current ? 'is-dragging' : ''}`}
-          style={modalStyle}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="modal-header" onMouseDown={onModalHeaderMouseDown}>
-            <span>添加评审意见</span>
-            <button className="close" onClick={() => setFormVisible(false)}>×</button>
+      <Modal
+        title={<div className="review-modal-header">添加评审意见</div>}
+        open={formVisible}
+        onCancel={() => setFormVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setFormVisible(false)}>取消</Button>,
+          <Button key="save" type="primary" disabled={!canSubmit} onClick={submitReview}>保存评审</Button>
+        ]}
+        width={modalDrag.size.width}
+        style={modalStyle}
+        className="review-modal"
+        wrapClassName="review-modal-wrap"
+        zIndex={10002}
+        getContainer={false}
+        closeIcon={<span className="review-modal-close">×</span>}
+        modalRender={(node) => <div onMouseDown={modalDrag.onDragStart}>{node}</div>}
+      >
+        <div className="form-row">
+          <label>评审目标</label>
+          <div className="review-targets-summary">
+            {form.targets.map((target, idx) => (
+              <Tag
+                key={idx}
+                className="target-tag"
+                title={target.type === 'element'
+                  ? (target.selector || '元素')
+                  : `框选 ${target.viewportRect?.x},${target.viewportRect?.y}`}
+              >
+                {target.type === 'element'
+                  ? (target.elementText || target.selector || '元素')
+                  : `框选 ${target.viewportRect?.x},${target.viewportRect?.y}`}
+              </Tag>
+            ))}
           </div>
-          <div className="modal-body">
-            <div className="form-row">
-              <label>评审目标</label>
-              <div className="review-targets-summary">
-                {form.targets.map((target, idx) => (
-                  <span key={idx} className="tag target-tag">
-                    {target.type === 'element'
-                      ? (target.elementText || target.selector || '元素')
-                      : `框选 ${target.viewportRect?.x},${target.viewportRect?.y}`}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="form-row">
-              <label>窗口尺寸</label>
-              <span className="text-muted">{form.viewport?.width} × {form.viewport?.height}</span>
-            </div>
-            <div className="form-row">
-              <label>滚动位置</label>
-              <span className="text-muted">x={form.scroll?.x}, y={form.scroll?.y}</span>
-            </div>
-            <div className="form-row">
-              <label>截图</label>
-              <div className="checkbox-group">
-                {[
-                  { value: SCREENSHOT_TYPES.TARGETS, label: '选中目标' },
-                  { value: SCREENSHOT_TYPES.VIEWPORT, label: '当前视口' },
-                  { value: SCREENSHOT_TYPES.FULL_PAGE, label: '完整页面' }
-                ].map(opt => (
-                  <label key={opt.value} className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      value={opt.value}
-                      checked={selectedScreenshots.includes(opt.value)}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        setSelectedScreenshots(prev =>
-                          prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
-                        )
-                      }}
-                    />
-                    {opt.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="form-row">
-              <label>标题 <span className="required">*</span></label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="例如：按钮样式不统一"
-              />
-            </div>
-            <div className="form-row">
-              <label>严重等级 <span className="required">*</span></label>
-              <div className="radio-group">
-                {['low', 'medium', 'high', 'critical'].map(s => (
-                  <label key={s} className="radio-label">
-                    <input
-                      type="radio"
-                      name="severity"
-                      value={s}
-                      checked={form.severity === s}
-                      onChange={() => setForm({ ...form, severity: s })}
-                    />
-                    {severityText(s)}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="form-row">
-              <label>评审建议 <span className="required">*</span></label>
-              <textarea
-                rows={4}
-                value={form.suggestion}
-                onChange={(e) => setForm({ ...form, suggestion: e.target.value })}
-                placeholder="描述问题现象、影响和改进建议"
-              />
-            </div>
-          </div>
-          <div className="modal-footer">
-            <button onClick={() => setFormVisible(false)}>取消</button>
-            <button className="primary" disabled={!canSubmit} onClick={submitReview}>保存评审</button>
-          </div>
-          <div className="modal-resize-handle" onMouseDown={onModalResizeStart} />
         </div>
-      )}
+        <div className="form-row">
+          <label>窗口尺寸</label>
+          <span className="text-muted">{form.viewport?.width} × {form.viewport?.height}</span>
+        </div>
+        <div className="form-row">
+          <label>滚动位置</label>
+          <span className="text-muted">x={form.scroll?.x}, y={form.scroll?.y}</span>
+        </div>
+        <div className="form-row">
+          <label>截图</label>
+          <Checkbox.Group
+            options={[
+              { label: '选中目标', value: SCREENSHOT_TYPES.TARGETS },
+              { label: '当前视口', value: SCREENSHOT_TYPES.VIEWPORT },
+              { label: '完整页面', value: SCREENSHOT_TYPES.FULL_PAGE }
+            ]}
+            value={selectedScreenshots}
+            onChange={(values) => setSelectedScreenshots(values)}
+          />
+        </div>
+        <div className="form-row">
+          <label>标题 <span className="required">*</span></label>
+          <Input
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            placeholder="例如：按钮样式不统一"
+          />
+        </div>
+        <div className="form-row">
+          <label>严重等级 <span className="required">*</span></label>
+          <Select
+            value={form.severity}
+            onChange={(value) => setForm({ ...form, severity: value })}
+            style={{ width: 160 }}
+            options={[
+              { value: 'low', label: '低' },
+              { value: 'medium', label: '中' },
+              { value: 'high', label: '高' },
+              { value: 'critical', label: '严重' }
+            ]}
+          />
+        </div>
+        <div className="form-row">
+          <label>评审建议 <span className="required">*</span></label>
+          <Input.TextArea
+            rows={4}
+            value={form.suggestion}
+            onChange={(e) => setForm({ ...form, suggestion: e.target.value })}
+            placeholder="描述问题现象、影响和改进建议"
+          />
+        </div>
+        <div className="modal-resize-handle" onMouseDown={modalDrag.onResizeStart} />
+      </Modal>
 
-      {treeVisible && (
-        <>
-          <div className="drawer-backdrop" onClick={() => setTreeVisible(false)} />
-          <div className="drawer">
-            <div className="drawer-header">
-              <span>组件树检查器</span>
-              <button className="close" onClick={() => setTreeVisible(false)}>×</button>
-            </div>
-            <div className="drawer-body">
-              {!componentTree ? (
-                <div className="empty">先选择一个元素以查看组件树</div>
-              ) : (
-                <div className="tree-panel">
-                  {componentTree.framework && componentTree.framework.length > 0 && (
-                    <div className="tree-section">
-                      <h4>框架组件树</h4>
-                      <div className="tree-list">
-                        {componentTree.framework.map((node, idx) => (
-                          <div
-                            key={'fw-' + idx}
-                            className="tree-node"
-                            onMouseEnter={() => onTreeNodeHover(node)}
-                            onMouseLeave={() => setTreeHoverRect(null)}
-                            onClick={() => onTreeNodeSelect(node)}
-                          >
-                            <span className="node-name">{node.componentName}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  <div className="tree-section">
-                    <h4>DOM 树</h4>
-                    <div className="tree-list">
-                      {componentTree.dom.map((node, idx) => (
-                        <div
-                          key={'dom-' + idx}
-                          className="tree-node"
-                          style={{ paddingLeft: idx * 12 }}
-                          onMouseEnter={() => onTreeNodeHover(node)}
-                          onMouseLeave={() => setTreeHoverRect(null)}
-                          onClick={() => onTreeNodeSelect(node)}
-                        >
-                          <span className="node-tag">{node.tag}</span>
-                          {node.id && <span className="node-id">#{node.id}</span>}
-                          {node.aria?.role && <span className="node-aria">role={node.aria.role}</span>}
-                          {node.testId && <span className="node-testid">testid={node.testId}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-
-      {listVisible && (
-        <>
-          <div className="drawer-backdrop" onClick={() => setListVisible(false)} />
-          <div className="drawer">
-            <div className="drawer-header">
-              <span>当前页面评审意见</span>
-              <button className="close" onClick={() => setListVisible(false)}>×</button>
-            </div>
-            <div className="drawer-body">
-              <div className="review-list-actions">
-                <button className="primary" onClick={handleExportMarkdown}>导出 Markdown</button>
-                <button onClick={handleExportJSON}>导出 JSON</button>
-                {enableZipExport && <button onClick={handleExportZIP}>导出 ZIP</button>}
-                <button className="danger-text" onClick={clearPage}>清空本页</button>
-              </div>
-              {pageReviews.length === 0 ? (
-                <div className="empty">暂无评审意见</div>
-              ) : (
-                <div className="review-list">
-                  {pageReviews.map(item => (
-                    <div key={item.id} className="review-item">
-                      <div className="review-item-header">
-                        <span className="review-item-title">{item.title}</span>
-                        <div className="review-item-tags">
-                          <span className={`tag ${severityType(item.severity)}`}>{severityText(item.severity)}</span>
-                          <span className="tag info">{item.targets?.length || 1} 个目标</span>
-                          {hasComponentTree(item) && <span className="tag success">树</span>}
-                        </div>
-                      </div>
-                      <p className="review-item-target">{summarizeTargets(item.targets)}</p>
-                      <p className="review-item-suggestion">{item.suggestion}</p>
-                      <div className="review-item-meta">
-                        <span className="text-muted">{new Date(item.createdAt).toLocaleString()}</span>
-                        <div className="review-item-actions">
-                          {item.status !== 'resolved' && <button className="link primary" onClick={() => resolve(item.id)}>标记解决</button>}
-                          <button className="link danger" onClick={() => remove(item.id)}>删除</button>
-                        </div>
-                      </div>
+      <Drawer
+        title="组件树检查器"
+        open={treeVisible}
+        onClose={() => setTreeVisible(false)}
+        placement="right"
+        width={480}
+        resizable
+        zIndex={10003}
+        getContainer={false}
+        className="review-drawer"
+      >
+        {!componentTree ? (
+          <Empty description="先选择一个元素以查看组件树" />
+        ) : (
+          <div className="tree-panel">
+            {componentTree.framework && componentTree.framework.length > 0 && (
+              <div className="tree-section">
+                <h4>框架组件树</h4>
+                <div className="tree-list">
+                  {componentTree.framework.map((node, idx) => (
+                    <div
+                      key={'fw-' + idx}
+                      className="tree-node"
+                      onMouseEnter={() => onTreeNodeHover(node)}
+                      onMouseLeave={() => setTreeHoverRect(null)}
+                      onClick={() => onTreeNodeSelect(node)}
+                    >
+                      <span className="node-name">{node.componentName}</span>
                     </div>
                   ))}
                 </div>
-              )}
+              </div>
+            )}
+            <div className="tree-section">
+              <h4>DOM 树</h4>
+              <div className="tree-list">
+                {componentTree.dom.map((node, idx) => (
+                  <div
+                    key={'dom-' + idx}
+                    className="tree-node"
+                    style={{ paddingLeft: idx * 12 }}
+                    onMouseEnter={() => onTreeNodeHover(node)}
+                    onMouseLeave={() => setTreeHoverRect(null)}
+                    onClick={() => onTreeNodeSelect(node)}
+                  >
+                    <span className="node-tag">{node.tag}</span>
+                    {node.id && <span className="node-id">#{node.id}</span>}
+                    {node.aria?.role && <span className="node-aria">role={node.aria.role}</span>}
+                    {node.testId && <span className="node-testid">testid={node.testId}</span>}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </>
-      )}
+        )}
+      </Drawer>
 
-      {confirm && (
-        <div className="modal-backdrop" onClick={() => setConfirm(null)}>
-          <div className="modal confirm-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">{confirm.title}</div>
-            <div className="modal-body">{confirm.message}</div>
-            <div className="modal-footer">
-              <button onClick={() => setConfirm(null)}>取消</button>
-              <button className="danger" onClick={confirm.onConfirm}>确定</button>
-            </div>
+      <Drawer
+        title="当前页面评审意见"
+        open={listVisible}
+        onClose={() => setListVisible(false)}
+        placement="right"
+        width={560}
+        resizable
+        zIndex={10003}
+        getContainer={false}
+        className="review-drawer"
+        extra={(
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button type="primary" size="small" onClick={handleExportMarkdown}>导出 Markdown</Button>
+            <Button size="small" onClick={handleExportJSON}>导出 JSON</Button>
+            {enableZipExport && <Button size="small" onClick={handleExportZIP}>导出 ZIP</Button>}
+            <Button danger size="small" onClick={clearPage}>清空本页</Button>
           </div>
-        </div>
-      )}
+        )}
+      >
+        {pageReviews.length === 0 ? (
+          <Empty description="暂无评审意见" />
+        ) : (
+          <div className="review-list">
+            {pageReviews.map(item => (
+              <Card
+                key={item.id}
+                size="small"
+                title={item.title}
+                extra={(
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <Tag color={severityColor(item.severity)}>{severityText(item.severity)}</Tag>
+                    <Tag>{item.targets?.length || 1} 个目标</Tag>
+                    {hasComponentTree(item) && <Tag color="success">树</Tag>}
+                  </div>
+                )}
+              >
+                <p className="review-item-target">{summarizeTargets(item.targets)}</p>
+                <p className="review-item-suggestion">{item.suggestion}</p>
+                <div className="review-item-meta">
+                  <span className="text-muted">{new Date(item.createdAt).toLocaleString()}</span>
+                  <div className="review-item-actions">
+                    {item.status !== 'resolved' && <Button type="link" size="small" onClick={() => resolve(item.id)}>标记解决</Button>}
+                    <Button type="link" danger size="small" onClick={() => remove(item.id)}>删除</Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </Drawer>
+
+      <Modal
+        title={confirm?.title}
+        open={!!confirm}
+        onOk={() => { confirm?.onConfirm(); setConfirm(null) }}
+        onCancel={() => setConfirm(null)}
+        zIndex={10004}
+        getContainer={false}
+        width={360}
+      >
+        <p>{confirm?.message}</p>
+      </Modal>
     </div>,
     document.body
   )
+}
+
+function isMultiSelectKey(e) {
+  return e.ctrlKey || e.metaKey
 }
 
 function highlightStyle(rect) {
@@ -1120,14 +828,14 @@ function handleStyle(position, rect) {
   return styles
 }
 
-function severityType(s) {
-  const map = { low: 'info', medium: 'warning', high: 'danger', critical: 'danger' }
-  return map[s] || 'info'
-}
-
 function severityText(s) {
   const map = { low: '低', medium: '中', high: '高', critical: '严重' }
   return map[s] || s
+}
+
+function severityColor(s) {
+  const map = { low: 'default', medium: 'warning', high: 'error', critical: 'error' }
+  return map[s] || 'default'
 }
 
 function hasComponentTree(item) {

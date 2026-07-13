@@ -46,6 +46,8 @@ yarn add react-page-review
 }
 ```
 
+若使用默认的 `ReviewTool` UI，还需安装可选 peer dependency `antd`（≥6.0.0），组件库会按需引入所需 antd 组件。
+
 ### 引入样式
 
 组件依赖自带的 CSS，请在入口或页面中引入：
@@ -143,6 +145,105 @@ const {
 - `exportToZIP()`：异步下载包含 JSON、Markdown 与截图的 ZIP。
 
 > **注意**：`screenshot.js` 与 `inspector.js` 是 `ReviewTool` 内部使用的工具模块，未通过公共入口导出。如需完全自定义截图或元素检查，建议直接使用 `html-to-image` 等底层能力。
+
+---
+
+## 无头交互 Hooks
+
+如果 `usePageReview` 仍无法满足需求，你可以直接复用底层的选择、框选、拖拽与缩放逻辑：
+
+```js
+import {
+  useElementSelection,
+  useViewportBoxing,
+  useDragResize
+} from 'react-page-review'
+
+function CustomReviewOverlay({ active, mode }) {
+  const onIgnoreTarget = (target) => !!target.closest('.review-overlay')
+
+  const selection = useElementSelection({
+    active: active && mode === 'element',
+    mode,
+    onIgnoreTarget
+  })
+
+  const boxing = useViewportBoxing({
+    active: active && mode === 'viewport',
+    mode,
+    onIgnoreTarget,
+    onBoxCreate: (box, e) => console.log('框选创建', box)
+  })
+
+  const panel = useDragResize({
+    initialPosition: { x: 0, y: 0 },
+    initialSize: { width: 400, height: null },
+    isDragHandle: (target) => target.classList.contains('my-panel-header')
+  })
+
+  return (
+    <div className="review-overlay">
+      {selection.hoveredRect && (
+        <div
+          className="highlight-box hover-box"
+          style={{
+            left: selection.hoveredRect.x,
+            top: selection.hoveredRect.y,
+            width: selection.hoveredRect.width,
+            height: selection.hoveredRect.height
+          }}
+        />
+      )}
+      {selection.selectedElements.map((item) => (
+        <div
+          key={item.selector}
+          className="highlight-box selected-box"
+          style={{
+            left: item.rect.x,
+            top: item.rect.y,
+            width: item.rect.width,
+            height: item.rect.height
+          }}
+        />
+      ))}
+      {boxing.selectedBoxes.map((box) => (
+        <div
+          key={box.id}
+          className="drag-rect selected-box"
+          style={{
+            left: boxing.toViewportRect(box.rect).x,
+            top: boxing.toViewportRect(box.rect).y,
+            width: box.rect.width,
+            height: box.rect.height
+          }}
+        />
+      ))}
+      <div
+        className="my-panel"
+        style={{
+          left: `calc(50% + ${panel.position.x}px)`,
+          top: `calc(50% + ${panel.position.y}px)`,
+          width: panel.size.width
+        }}
+        onMouseDown={panel.onDragStart}
+      >
+        <div className="my-panel-header">可拖动面板</div>
+        <div className="panel-resize-handle" onMouseDown={panel.onResizeStart} />
+      </div>
+    </div>
+  )
+}
+```
+
+### Hook API 速查
+
+| Hook | 作用 | 主要返回值 |
+| --- | --- | --- |
+| `useElementSelection({ active, mode, onIgnoreTarget })` | 元素悬停/选择 | `hoveredRect`、`hoveredTag`、`selectedElements`、`selectElement`、`removeSelectedElement`、`clearSelectedElements` |
+| `useViewportBoxing({ active, mode, onIgnoreTarget, onBoxCreate })` | 视口框选 | `selectedBoxes`、`dragRect`、`resizingBoxId`、`removeBox`、`clearBoxes`、`startResize`、`toViewportRect` |
+| `useDragResize({ initialPosition, initialSize, isDragHandle, minWidth, minHeight, measureRef })` | 面板拖拽/缩放 | `position`、`size`、`isDragging`、`isResizing`、`onDragStart`、`onResizeStart` |
+
+这些 hooks **不依赖** `usePageReview`，只负责交互状态，可与任意数据层组合使用。
 
 ---
 
