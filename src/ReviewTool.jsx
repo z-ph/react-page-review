@@ -739,12 +739,28 @@ export default function ReviewTool({
         getContainer={false}
         className="rpr-review-drawer"
         extra={(
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button type="primary" size="small" onClick={handleExportMarkdown}>导出 Markdown</Button>
-            <Button size="small" onClick={handleExportJSON}>导出 JSON</Button>
-            {enableZipExport && <Button size="small" onClick={handleExportZIP}>导出 ZIP</Button>}
-            <Button danger size="small" onClick={clearPage}>清空本页</Button>
-          </div>
+          <Dropdown
+            menu={{
+              items: [
+                { key: 'export-md', label: '导出 Markdown' },
+                { key: 'export-json', label: '导出 JSON' },
+                ...(enableZipExport ? [{ key: 'export-zip', label: '导出 ZIP' }] : []),
+                { type: 'divider' },
+                { key: 'clear-page', label: '清空本页', danger: true }
+              ],
+              onClick: ({ key }) => {
+                if (key === 'export-md') handleExportMarkdown()
+                else if (key === 'export-json') handleExportJSON()
+                else if (key === 'export-zip') handleExportZIP()
+                else if (key === 'clear-page') clearPage()
+              }
+            }}
+            trigger={['click']}
+            placement="bottomRight"
+            getPopupContainer={(triggerNode) => triggerNode.parentNode}
+          >
+            <Button size="small">操作</Button>
+          </Dropdown>
         )}
       >
         {pageReviews.length === 0 ? (
