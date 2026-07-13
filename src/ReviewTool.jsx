@@ -182,7 +182,7 @@ export default function ReviewTool({
         type: 'element',
         selector: item.selector,
         elementText: item.text,
-        elementRect: item.rect,
+        elementRect: item.docRect || item.rect,
         componentTree: nodeInfo ? getComponentTree(item.el) : null,
         aria: nodeInfo?.aria || null,
         locators: nodeInfo ? buildLocators(nodeInfo) : null
@@ -374,6 +374,12 @@ export default function ReviewTool({
       tag: el.tagName.toLowerCase(),
       text: el.innerText?.slice(0, 40) || '',
       rect: {
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height
+      },
+      docRect: {
         x: rect.left + window.scrollX,
         y: rect.top + window.scrollY,
         width: rect.width,
@@ -424,8 +430,8 @@ export default function ReviewTool({
     }
     const rect = target.getBoundingClientRect()
     setHoveredRect({
-      x: rect.left + window.scrollX,
-      y: rect.top + window.scrollY,
+      x: rect.left,
+      y: rect.top,
       width: rect.width,
       height: rect.height
     })
@@ -450,6 +456,12 @@ export default function ReviewTool({
       tag: target.tagName.toLowerCase(),
       text: target.innerText?.slice(0, 40) || '',
       rect: {
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height
+      },
+      docRect: {
         x: rect.left + window.scrollX,
         y: rect.top + window.scrollY,
         width: rect.width,
@@ -700,7 +712,24 @@ export default function ReviewTool({
 
   useEffect(() => {
     if (!active) return
-    const onScroll = () => setScrollPos({ x: window.scrollX, y: window.scrollY })
+    const onScroll = () => {
+      setScrollPos({ x: window.scrollX, y: window.scrollY })
+      setSelectedElements(prev => prev.map(item => {
+        const el = item.el || document.querySelector(item.selector)
+        if (!el) return item
+        const rect = el.getBoundingClientRect()
+        return {
+          ...item,
+          el,
+          rect: {
+            x: rect.left,
+            y: rect.top,
+            width: rect.width,
+            height: rect.height
+          }
+        }
+      }))
+    }
     window.addEventListener('scroll', onScroll, true)
     return () => window.removeEventListener('scroll', onScroll, true)
   }, [active])
@@ -780,7 +809,7 @@ export default function ReviewTool({
       </div>
 
       {hoveredRect && mode === 'element' && !isDraggingBoxRef.current && !resizingBoxId && (
-        <div className="highlight-box hover-box" style={highlightStyle(toViewportRect(hoveredRect))}>
+        <div className="highlight-box hover-box" style={highlightStyle(hoveredRect)}>
           <span className="highlight-label">{hoveredTag}</span>
         </div>
       )}
@@ -789,7 +818,7 @@ export default function ReviewTool({
         <div
           key={'el-' + idx}
           className="highlight-box selected-box"
-          style={highlightStyle(toViewportRect(item.rect))}
+          style={highlightStyle(item.rect)}
           onClick={(e) => onSelectedElementClick(item, e)}
         >
           <span className="highlight-label">
