@@ -1,6 +1,6 @@
 {
   "name": "react-page-review",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "A React page review tool for collecting UI feedback with element selection and viewport boxing.",
   "type": "module",
   "main": "./dist/react-page-review.umd.cjs",
@@ -22,9 +22,9 @@
     "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
+    "antd": "^6.0.0",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0",
-    "antd": "^6.0.0"
+    "react-dom": "^18.0.0"
   },
   "peerDependenciesMeta": {
     "antd": {
