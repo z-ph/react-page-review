@@ -59,6 +59,8 @@ export default function ReviewTool({
   const [treeHoverRect, setTreeHoverRect] = useState(null)
   const [componentTree, setComponentTree] = useState(null)
 
+  const [scrollPos, setScrollPos] = useState({ x: window.scrollX, y: window.scrollY })
+
   const [dragRect, setDragRect] = useState(null)
   const isDraggingBoxRef = useRef(false)
   const dragStartRef = useRef({ x: 0, y: 0 })
@@ -113,6 +115,16 @@ export default function ReviewTool({
     pageUrl: window.location.href,
     pageName: pageName || resolvedPagePath
   }), [resolvedPagePath, pageName])
+
+  const toViewportRect = useCallback((rect) => {
+    if (!rect) return null
+    return {
+      x: rect.x - scrollPos.x,
+      y: rect.y - scrollPos.y,
+      width: rect.width,
+      height: rect.height
+    }
+  }, [scrollPos])
 
   const getElementSelector = useCallback((el) => {
     if (el.id) return '#' + el.id
@@ -465,7 +477,7 @@ export default function ReviewTool({
     if (e.target.closest('.review-overlay')) return
     e.preventDefault()
     isDraggingBoxRef.current = true
-    dragStartRef.current = { x: e.clientX + window.scrollX, y: e.clientY + window.scrollY }
+    dragStartRef.current = { x: e.clientX, y: e.clientY }
     setDragRect({ x: dragStartRef.current.x, y: dragStartRef.current.y, width: 0, height: 0 })
   }, [mode, formVisible, resizingBoxId])
 
@@ -500,8 +512,8 @@ export default function ReviewTool({
       return
     }
     if (!isDraggingBoxRef.current) return
-    const x = e.clientX + window.scrollX
-    const y = e.clientY + window.scrollY
+    const x = e.clientX
+    const y = e.clientY
     setDragRect({
       x: Math.min(dragStartRef.current.x, x),
       y: Math.min(dragStartRef.current.y, y),
@@ -544,7 +556,12 @@ export default function ReviewTool({
           const next = [...boxes, {
             id: 'box-' + Date.now() + '-' + boxCounterRef.current++,
             index: boxes.length,
-            rect: { ...prev }
+            rect: {
+              x: prev.x + window.scrollX,
+              y: prev.y + window.scrollY,
+              width: prev.width,
+              height: prev.height
+            }
           }]
           return next
         })
@@ -679,6 +696,13 @@ export default function ReviewTool({
   }, [active, onMouseMove, onMouseOut, onElementClick, onMouseDown, onMouseMoveDrag, onToolbarMouseMove, onModalMouseMove, onMouseUp, onKeyDown])
 
   useEffect(() => {
+    if (!active) return
+    const onScroll = () => setScrollPos({ x: window.scrollX, y: window.scrollY })
+    window.addEventListener('scroll', onScroll, true)
+    return () => window.removeEventListener('scroll', onScroll, true)
+  }, [active])
+
+  useEffect(() => {
     if (active) {
       setMode('element')
     } else {
@@ -689,8 +713,6 @@ export default function ReviewTool({
       setTreeVisible(false)
     }
   }, [active, clearAllSelections, resetForm])
-
-  if (!active) return null
 
   const toolbarStyle = {
     transform: `translate(calc(-50% + ${toolbarPos.x}px), ${toolbarPos.y}px)`
@@ -755,7 +777,7 @@ export default function ReviewTool({
       </div>
 
       {hoveredRect && mode === 'element' && !isDraggingBoxRef.current && !resizingBoxId && (
-        <div className="highlight-box hover-box" style={highlightStyle(hoveredRect)}>
+        <div className="highlight-box hover-box" style={highlightStyle(toViewportRect(hoveredRect))}>
           <span className="highlight-label">{hoveredTag}</span>
         </div>
       )}
@@ -764,7 +786,7 @@ export default function ReviewTool({
         <div
           key={'el-' + idx}
           className="highlight-box selected-box"
-          style={highlightStyle(item.rect)}
+          style={highlightStyle(toViewportRect(item.rect))}
           onClick={(e) => onSelectedElementClick(item, e)}
         >
           <span className="highlight-label">
@@ -775,14 +797,14 @@ export default function ReviewTool({
       ))}
 
       {treeHoverRect && (
-        <div className="highlight-box tree-hover-box" style={highlightStyle(treeHoverRect)} />
+        <div className="highlight-box tree-hover-box" style={highlightStyle(toViewportRect(treeHoverRect))} />
       )}
 
       {selectedBoxes.map(box => (
         <div
           key={box.id}
           className={`drag-rect selected-box ${resizingBoxId === box.id ? 'is-resizing' : ''}`}
-          style={boxStyle(box.rect)}
+          style={boxStyle(toViewportRect(box.rect))}
           onMouseDown={(e) => onBoxMouseDown(box, e)}
         >
           <span className="box-label" onMouseDown={(e) => e.stopPropagation()}>
