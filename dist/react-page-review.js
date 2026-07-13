@@ -3596,8 +3596,10 @@ async function Xe(t, o = {}) {
   return (await Fn(t, o)).toDataURL();
 }
 const Qt = {
+  ELEMENT: "element",
   VIEWPORT: "viewport",
   FULL_PAGE: "fullpage",
+  BOX: "box",
   TARGETS: "targets"
 };
 function Me(t) {
@@ -4707,6 +4709,18 @@ function ni(t) {
 }
 export {
   ai as ReviewTool,
+  Qt as SCREENSHOT_TYPES,
+  Un as captureBox,
+  Er as captureElement,
+  Ln as captureFullPage,
+  Bn as captureViewport,
   ai as default,
+  Me as generateScreenshotFilename,
+  Zn as getAriaInfo,
+  We as getComponentTree,
+  Cr as getCssSelector,
+  Te as getNodeInfo,
+  Yn as getTestId,
+  Wn as getXPath,
   Mr as usePageReview
 };

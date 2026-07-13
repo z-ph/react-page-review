@@ -1,0 +1,42 @@
+[
+  {
+    "number": 1,
+    "category": "导出",
+    "task": "在 index.jsx 导出 inspector 与 screenshot 工具函数",
+    "steps": [
+      {
+        "step": "导出 getNodeInfo / getCssSelector / getXPath / getAriaInfo / getTestId / getComponentTree",
+        "completed": true
+      },
+      {
+        "step": "导出 captureElement / captureViewport / captureFullPage / captureBox / generateScreenshotFilename / SCREENSHOT_TYPES",
+        "completed": true
+      },
+      {
+        "step": "版本号升至 0.6.0",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 2,
+    "category": "验证",
+    "task": "构建并发布",
+    "steps": [
+      {
+        "step": "pnpm build 成功且 dist 包含新增导出",
+        "completed": true
+      },
+      {
+        "step": "提交并推送 v0.6.0 标签触发 CI 发版",
+        "completed": false
+      },
+      {
+        "step": "npm view react-page-review version 显示 0.6.0",
+        "completed": false
+      }
+    ],
+    "passes": false
+  }
+]
