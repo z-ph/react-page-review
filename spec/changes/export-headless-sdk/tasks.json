@@ -30,13 +30,13 @@
       },
       {
         "step": "提交并推送 v0.6.0 标签触发 CI 发版",
-        "completed": false
+        "completed": true
       },
       {
         "step": "npm view react-page-review version 显示 0.6.0",
-        "completed": false
+        "completed": true
       }
     ],
-    "passes": false
+    "passes": true
   }
 ]
