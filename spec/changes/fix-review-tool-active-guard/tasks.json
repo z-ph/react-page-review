@@ -1,0 +1,42 @@
+[
+  {
+    "number": 1,
+    "category": "修复",
+    "task": "ReviewTool 根据 active 条件渲染",
+    "steps": [
+      {
+        "step": "在 ReviewTool.jsx 中增加 if (!active) return null",
+        "completed": true
+      },
+      {
+        "step": "验证 active=false 时不渲染任何 DOM",
+        "completed": true
+      },
+      {
+        "step": "验证 active=true 时正常显示评审工具",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 2,
+    "category": "验证",
+    "task": "在宿主项目中验证修复",
+    "steps": [
+      {
+        "step": "更新 bidding-prototype 中的 react-page-review",
+        "completed": false
+      },
+      {
+        "step": "验证页面加载后评审 overlay 默认隐藏",
+        "completed": false
+      },
+      {
+        "step": "验证打开/退出评审行为正常",
+        "completed": false
+      }
+    ],
+    "passes": false
+  }
+]

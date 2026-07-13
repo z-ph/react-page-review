@@ -762,6 +762,8 @@ export default function ReviewTool({
 
   const resizeHandlePositions = ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se']
 
+  if (!active) return null
+
   return createPortal(
     <div className="review-overlay" onClick={handleOverlayClick}>
       <div

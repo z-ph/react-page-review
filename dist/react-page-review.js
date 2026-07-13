@@ -4334,7 +4334,7 @@ function ai({
   };
   Rt.height && (Ke.height = Rt.height + "px");
   const Pr = ["nw", "n", "ne", "w", "e", "sw", "s", "se"];
-  return Ir(
+  return t ? Ir(
     /* @__PURE__ */ B.jsxs("div", { className: "review-overlay", onClick: jr, children: [
       /* @__PURE__ */ B.jsxs(
         "div",
@@ -4665,7 +4665,7 @@ function ai({
       ] }) })
     ] }),
     document.body
-  );
+  ) : null;
 }
 function Ze(t) {
   return t ? {
