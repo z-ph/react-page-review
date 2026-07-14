@@ -280,7 +280,41 @@ async function waitBlob(page, minCount) {
   await clickMoreItem(page, '取消选择')
   await page.locator('.rpr-review-toolbar').getByText('选择元素', { exact: true }).click()
 
-  // 19. 截图期间隐藏评审 UI（导出截图纯净）
+  // 19. 框选/调整期间不产生原生文字选区
+  await page.locator('.rpr-review-toolbar').getByText('框定视图', { exact: true }).click()
+  const cardRect = await page.locator('.test-card >> nth=0').boundingBox()
+  // 在含文字的卡片上拖拽创建框选
+  await page.mouse.move(cardRect.x + 8, cardRect.y + 8)
+  await page.mouse.down()
+  await page.mouse.move(cardRect.x + cardRect.width - 8, cardRect.y + cardRect.height - 8, { steps: 6 })
+  const userSelectDuringCreate = await page.evaluate(() => document.body.style.userSelect)
+  check('拖拽创建框选期间 body userSelect 为 none', userSelectDuringCreate === 'none', userSelectDuringCreate)
+  await page.mouse.up()
+  await page.waitForSelector('.rpr-drag-rect.rpr-selected-box', { state: 'visible' })
+  const selectionAfterCreate = await page.evaluate(() => window.getSelection().toString())
+  check('拖拽创建框选不产生文字选区', selectionAfterCreate === '', selectionAfterCreate)
+  const userSelectAfterCreate = await page.evaluate(() => document.body.style.userSelect)
+  check('拖拽结束后 body userSelect 已恢复', userSelectAfterCreate !== 'none', userSelectAfterCreate || '（空）')
+
+  // 拖拽已有框选的右下角调整手柄（StrictMode dev 下同一次拖拽会产生两个重叠框选，取其一即可）
+  const seHandle = await page
+    .locator('.rpr-drag-rect.rpr-selected-box .rpr-resize-handle.rpr-handle-se')
+    .first()
+    .boundingBox()
+  await page.mouse.move(seHandle.x + seHandle.width / 2, seHandle.y + seHandle.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(seHandle.x + seHandle.width / 2 + 80, seHandle.y + seHandle.height / 2 + 80, { steps: 6 })
+  const selectionDuringResize = await page.evaluate(() => window.getSelection().toString())
+  check('调整框选尺寸不产生文字选区', selectionDuringResize === '', selectionDuringResize)
+  await page.mouse.up()
+  const userSelectAfterResize = await page.evaluate(() => document.body.style.userSelect)
+  check('调整结束后 body userSelect 已恢复', userSelectAfterResize !== 'none', userSelectAfterResize || '（空）')
+
+  // 清理：清空框选、切回元素模式
+  await clickMoreItem(page, '取消选择')
+  await page.locator('.rpr-review-toolbar').getByText('选择元素', { exact: true }).click()
+
+  // 20. 截图期间隐藏评审 UI（导出截图纯净）
   await page.click('.test-card >> nth=0')
   await page.waitForSelector('.rpr-highlight-box.rpr-selected-box', { state: 'visible' })
   await page.locator('.rpr-review-toolbar .ant-badge button').click()
@@ -352,7 +386,7 @@ async function waitBlob(page, minCount) {
   }
   check('完整页面截图为合法 PNG 且尺寸有效', pngOk, pngInfo)
 
-  // 20. 无页面级 JS 错误
+  // 21. 无页面级 JS 错误
   check('无页面 JS 错误', pageErrors.length === 0, pageErrors.join(' | '))
 
   await browser.close()

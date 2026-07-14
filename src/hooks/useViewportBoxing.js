@@ -19,6 +19,20 @@ export function useViewportBoxing({ active, mode, onIgnoreTarget, onBoxCreate })
   const dragStartRef = useRef({ x: 0, y: 0 })
   const resizeHandleRef = useRef('')
   const resizeStartRef = useRef({ x: 0, y: 0, rect: null })
+  const savedUserSelectRef = useRef(null)
+
+  // 拖拽期间禁止页面原生文字选中，结束时恢复原值
+  const disableTextSelection = useCallback(() => {
+    if (savedUserSelectRef.current !== null) return
+    savedUserSelectRef.current = document.body.style.userSelect
+    document.body.style.userSelect = 'none'
+  }, [])
+
+  const restoreTextSelection = useCallback(() => {
+    if (savedUserSelectRef.current === null) return
+    document.body.style.userSelect = savedUserSelectRef.current
+    savedUserSelectRef.current = null
+  }, [])
 
   const getSafeTarget = useCallback((e) => {
     const target = e.target
@@ -52,7 +66,9 @@ export function useViewportBoxing({ active, mode, onIgnoreTarget, onBoxCreate })
   }, [])
 
   const startResize = useCallback((box, position, e) => {
+    e.preventDefault()
     e.stopPropagation()
+    disableTextSelection()
     setResizingBoxId(box.id)
     resizeHandleRef.current = position
     resizeStartRef.current = {
@@ -60,7 +76,7 @@ export function useViewportBoxing({ active, mode, onIgnoreTarget, onBoxCreate })
       y: e.clientY + window.scrollY,
       rect: { ...box.rect }
     }
-  }, [])
+  }, [disableTextSelection])
 
   const onMouseDown = useCallback((e) => {
     if (!isEnabled) return
@@ -68,14 +84,16 @@ export function useViewportBoxing({ active, mode, onIgnoreTarget, onBoxCreate })
     const target = getSafeTarget(e)
     if (!target) return
     e.preventDefault()
+    disableTextSelection()
     isDraggingBoxRef.current = true
     dragStartRef.current = { x: e.clientX, y: e.clientY }
     setDragRect({ x: e.clientX, y: e.clientY, width: 0, height: 0 })
-  }, [isEnabled, resizingBoxId, getSafeTarget])
+  }, [isEnabled, resizingBoxId, getSafeTarget, disableTextSelection])
 
   const onMouseMove = useCallback((e) => {
     if (!isEnabled && !resizingBoxId) return
     if (resizingBoxId && resizeStartRef.current.rect) {
+      e.preventDefault()
       const dx = e.clientX + window.scrollX - resizeStartRef.current.x
       const dy = e.clientY + window.scrollY - resizeStartRef.current.y
       const orig = resizeStartRef.current.rect
@@ -97,6 +115,7 @@ export function useViewportBoxing({ active, mode, onIgnoreTarget, onBoxCreate })
       return
     }
     if (!isDraggingBoxRef.current) return
+    e.preventDefault()
     const x = e.clientX
     const y = e.clientY
     setDragRect({
@@ -113,10 +132,12 @@ export function useViewportBoxing({ active, mode, onIgnoreTarget, onBoxCreate })
       setResizingBoxId(null)
       resizeHandleRef.current = ''
       resizeStartRef.current = { x: 0, y: 0, rect: null }
+      restoreTextSelection()
       return
     }
     if (!isDraggingBoxRef.current) return
     isDraggingBoxRef.current = false
+    restoreTextSelection()
     setDragRect(prev => {
       if (prev && prev.width > 10 && prev.height > 10) {
         const box = {
@@ -134,7 +155,7 @@ export function useViewportBoxing({ active, mode, onIgnoreTarget, onBoxCreate })
       }
       return null
     })
-  }, [isEnabled, resizingBoxId, onBoxCreate])
+  }, [isEnabled, resizingBoxId, onBoxCreate, restoreTextSelection])
 
   const onScroll = useCallback(() => {
     const nextScroll = { x: window.scrollX, y: window.scrollY }
@@ -164,6 +185,11 @@ export function useViewportBoxing({ active, mode, onIgnoreTarget, onBoxCreate })
       document.removeEventListener('mouseup', onMouseUp)
     }
   }, [isEnabled, resizingBoxId, onMouseDown, onMouseMove, onMouseUp])
+
+  // 组件卸载时兜底恢复文字可选状态，避免残留 user-select:none
+  useEffect(() => {
+    return () => restoreTextSelection()
+  }, [restoreTextSelection])
 
   return {
     selectedBoxes,

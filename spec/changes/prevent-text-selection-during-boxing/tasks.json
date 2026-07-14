@@ -1,0 +1,38 @@
+[
+  {
+    "number": 1,
+    "category": "修复",
+    "task": "框选/调整期间禁止页面文字选中",
+    "steps": [
+      {
+        "step": "拖拽创建或调整尺寸期间将 document.body user-select 设为 none，结束/卸载时恢复原值",
+        "completed": true
+      },
+      {
+        "step": "startResize 增加 e.preventDefault()；onMouseMove 拖拽进行中调用 e.preventDefault()",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 2,
+    "category": "验证",
+    "task": "端到端验证",
+    "steps": [
+      {
+        "step": "新增 e2e 用例：拖拽创建框选不产生文字选区",
+        "completed": true
+      },
+      {
+        "step": "新增 e2e 用例：调整框选尺寸不产生文字选区，且结束后 userSelect 恢复",
+        "completed": true
+      },
+      {
+        "step": "既有 e2e 全量回归通过",
+        "completed": true
+      }
+    ],
+    "passes": true
+  }
+]
