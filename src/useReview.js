@@ -203,6 +203,9 @@ function buildMarkdown(data) {
           if (t.type === 'element' && t.elementRect) {
             lines.push(`  - 目标 ${tidx + 1}（元素）：\`${t.selector}\` x=${t.elementRect.x}, y=${t.elementRect.y}, w=${t.elementRect.width}, h=${t.elementRect.height}`)
             if (t.elementText) lines.push(`    文本：${t.elementText}`)
+            if (t.locators && Object.keys(t.locators).length > 0) {
+              lines.push(...formatLocatorLines(t.locators, '    '))
+            }
           } else if (t.viewportRect) {
             lines.push(`  - 目标 ${tidx + 1}（框选）：x=${t.viewportRect.x}, y=${t.viewportRect.y}, w=${t.viewportRect.width}, h=${t.viewportRect.height}`)
           }
@@ -211,14 +214,11 @@ function buildMarkdown(data) {
       lines.push(`- **评审建议**：${item.suggestion}`)
       lines.push(`- **创建时间**：${new Date(item.createdAt).toLocaleString()}`)
 
-      if (item.locators && Object.keys(item.locators).length > 0) {
+      const hasPerTargetLocators = targets.some(t => t.locators && Object.keys(t.locators).length > 0)
+      if (!hasPerTargetLocators && item.locators && Object.keys(item.locators).length > 0) {
         lines.push('')
         lines.push('#### 定位信息')
-        if (item.locators.cssSelector) lines.push(`- **CSS Selector**: \`${item.locators.cssSelector}\``)
-        if (item.locators.xpath) lines.push(`- **XPath**: \`${item.locators.xpath}\``)
-        if (item.locators.aria?.role) lines.push(`- **ARIA Role**: ${item.locators.aria.role}`)
-        if (item.locators.aria?.accessibleName) lines.push(`- **Accessible Name**: ${item.locators.aria.accessibleName}`)
-        if (item.locators.testId) lines.push(`- **data-testid**: ${item.locators.testId}`)
+        lines.push(...formatLocatorLines(item.locators, '- '))
       }
 
       if (item.screenshots && item.screenshots.length > 0) {
@@ -260,6 +260,16 @@ function formatDate() {
 
 function pad(n) {
   return String(n).padStart(2, '0')
+}
+
+function formatLocatorLines(locators, prefix) {
+  const lines = []
+  if (locators.cssSelector) lines.push(`${prefix}**CSS Selector**: \`${locators.cssSelector}\``)
+  if (locators.xpath) lines.push(`${prefix}**XPath**: \`${locators.xpath}\``)
+  if (locators.aria?.role) lines.push(`${prefix}**ARIA Role**: ${locators.aria.role}`)
+  if (locators.aria?.accessibleName) lines.push(`${prefix}**Accessible Name**: ${locators.aria.accessibleName}`)
+  if (locators.testId) lines.push(`${prefix}**data-testid**: ${locators.testId}`)
+  return lines
 }
 
 function severityText(s) {

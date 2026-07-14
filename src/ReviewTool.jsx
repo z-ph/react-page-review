@@ -5,7 +5,6 @@ import {
   Dropdown,
   Modal,
   Drawer,
-  Radio,
   Checkbox,
   Input,
   Select,
@@ -95,6 +94,9 @@ export default function ReviewTool({
 
   const panelInteractingRef = useRef(false)
   const toolbarRef = useRef(null)
+  const titleInputRef = useRef(null)
+  const reviewButtonRef = useRef(null)
+  const triggerElementRef = useRef(null)
 
   const onIgnoreTarget = useCallback((target) => {
     if (panelInteractingRef.current) return true
@@ -223,6 +225,7 @@ export default function ReviewTool({
   }, [selection.clearSelectedElements, boxing.clearBoxes])
 
   const openReviewForm = useCallback(() => {
+    triggerElementRef.current = document.activeElement
     const env = captureEnv()
     const targets = buildTargets()
     const firstElement = selection.selectedElements[0]
@@ -337,6 +340,7 @@ export default function ReviewTool({
   }, [updateReview, onUpdate])
 
   const remove = useCallback((id) => {
+    triggerElementRef.current = document.activeElement
     setConfirm({
       title: '删除确认',
       message: '确定删除这条评审意见吗？',
@@ -350,6 +354,7 @@ export default function ReviewTool({
 
   const clearPage = useCallback(() => {
     if (pageReviews.length === 0) return
+    triggerElementRef.current = document.activeElement
     setConfirm({
       title: '清空确认',
       message: '确定清空当前页面的所有评审意见吗？',
@@ -420,6 +425,43 @@ export default function ReviewTool({
   }, [selection.selectedElements.length])
 
   useEffect(() => {
+    const anyPanelOpen = formVisible || treeVisible || listVisible || !!confirm
+    if (anyPanelOpen) {
+      document.body.classList.add('rpr-scroll-locked')
+    } else {
+      document.body.classList.remove('rpr-scroll-locked')
+    }
+    return () => {
+      document.body.classList.remove('rpr-scroll-locked')
+    }
+  }, [formVisible, treeVisible, listVisible, confirm])
+
+  useEffect(() => {
+    if (formVisible) {
+      const timer = setTimeout(() => {
+        titleInputRef.current?.focus()
+      }, 0)
+      return () => clearTimeout(timer)
+    } else {
+      const trigger = triggerElementRef.current
+      if (trigger && typeof trigger.focus === 'function' && !trigger.disabled) {
+        trigger.focus()
+      }
+      triggerElementRef.current = null
+    }
+  }, [formVisible])
+
+  useEffect(() => {
+    if (!confirm) {
+      const trigger = triggerElementRef.current
+      if (trigger && typeof trigger.focus === 'function' && !trigger.disabled) {
+        trigger.focus()
+      }
+      triggerElementRef.current = null
+    }
+  }, [confirm])
+
+  useEffect(() => {
     if (!active) return
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
@@ -457,10 +499,8 @@ export default function ReviewTool({
     if (enableZipExport) {
       items.push({ key: 'export-zip', label: '导出 ZIP' })
     }
-    items.push({ type: 'divider' })
-    items.push({ key: 'clear', label: '取消选择', disabled: selectedCount === 0 })
     return items
-  }, [enableComponentTree, enableZipExport, selectedCount])
+  }, [enableComponentTree, enableZipExport])
 
   const handleMoreClick = useCallback(({ key }) => {
     switch (key) {
@@ -479,13 +519,10 @@ export default function ReviewTool({
       case 'export-zip':
         handleExportZIP()
         break
-      case 'clear':
-        clearAllSelections()
-        break
       default:
         break
     }
-  }, [openTreePanel, handleExportMarkdown, handleExportJSON, handleExportZIP, clearAllSelections])
+  }, [openTreePanel, handleExportMarkdown, handleExportJSON, handleExportZIP])
 
   const toolbarStyle = {
     transform: `translate(calc(-50% + ${toolbarDrag.position.x}px), ${toolbarDrag.position.y}px)`,
@@ -511,25 +548,34 @@ export default function ReviewTool({
         ref={toolbarRef}
         className={`rpr-review-toolbar ${toolbarDrag.isDragging ? 'rpr-is-dragging' : ''}`}
         style={toolbarStyle}
-        onClick={(e) => e.stopPropagation()}
-        onMouseDown={toolbarDrag.onDragStart}
+        onMouseDown={(e) => {
+          if (e.target.closest('button, select, input, .ant-dropdown, .ant-select')) return
+          toolbarDrag.onDragStart(e)
+        }}
       >
         <div className="rpr-toolbar-left">
           <span className="rpr-review-toolbar-title" title="按住此处可拖动">页面评审模式</span>
-          <Radio.Group
-            size="small"
+          <select
+            className="rpr-mode-select"
             value={mode}
             onChange={(e) => setMode(e.target.value)}
-            optionType="button"
-            buttonStyle="solid"
+            data-testid="rpr-mode-select"
           >
-            <Radio.Button value="element">选择元素</Radio.Button>
-            <Radio.Button value="viewport">框定视图</Radio.Button>
-          </Radio.Group>
+            <option value="element">选择元素</option>
+            <option value="viewport">框定视图</option>
+          </select>
         </div>
         <div className="rpr-toolbar-right">
+          <Button
+            size="small"
+            disabled={selectedCount === 0}
+            onClick={clearAllSelections}
+          >
+            取消选择
+          </Button>
           <Badge count={selectedCount} size="small" offset={[10, -2]}>
             <Button
+              ref={reviewButtonRef}
               type="primary"
               size="small"
               disabled={selectedCount === 0}
@@ -624,19 +670,24 @@ export default function ReviewTool({
         <div className="rpr-form-row">
           <label>评审目标</label>
           <div className="rpr-review-targets-summary">
-            {form.targets.map((target, idx) => (
-              <Tag
-                key={idx}
-                className="rpr-target-tag"
-                title={target.type === 'element'
-                  ? (target.selector || '元素')
-                  : `框选 ${target.viewportRect?.x},${target.viewportRect?.y}`}
-              >
-                {target.type === 'element'
-                  ? (target.elementText || target.selector || '元素')
-                  : `框选 ${target.viewportRect?.x},${target.viewportRect?.y}`}
-              </Tag>
-            ))}
+            {form.targets.map((target, idx) => {
+              const title = target.type === 'element'
+                ? (target.selector
+                    ? `${target.selector}${target.elementRect ? ` (${target.elementRect.x},${target.elementRect.y})` : ''}`
+                    : '元素')
+                : `框选 ${target.viewportRect?.x},${target.viewportRect?.y}`
+              return (
+                <Tag
+                  key={idx}
+                  className="rpr-target-tag"
+                  title={title}
+                >
+                  {target.type === 'element'
+                    ? (target.elementText || target.selector || '元素')
+                    : `框选 ${target.viewportRect?.x},${target.viewportRect?.y}`}
+                </Tag>
+              )
+            })}
           </div>
         </div>
         <div className="rpr-form-row">
@@ -662,6 +713,7 @@ export default function ReviewTool({
         <div className="rpr-form-row">
           <label>标题 <span className="rpr-required">*</span></label>
           <Input
+            ref={titleInputRef}
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             placeholder="例如：按钮样式不统一"
@@ -829,6 +881,7 @@ export default function ReviewTool({
         width={360}
         className="rpr-review-confirm-modal"
         rootClassName="rpr-review-confirm-root"
+        autoFocusButton="ok"
       >
         <p>{confirm?.message}</p>
       </Modal>

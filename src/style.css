@@ -10,6 +10,10 @@
   pointer-events: none;
 }
 
+body.rpr-scroll-locked {
+  overflow: hidden;
+}
+
 .rpr-review-toolbar {
   position: fixed;
   top: 16px;
@@ -18,8 +22,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 10px 16px;
+  gap: 12px;
+  padding: 8px 12px;
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -29,6 +33,10 @@
   min-height: auto;
   /* antd 弹层根节点（Modal/Drawer）自带 pointer-events 管理，只给自有交互元素恢复 */
   pointer-events: auto;
+}
+
+.rpr-review-toolbar .ant-select {
+  font-size: 13px;
 }
 
 .rpr-toolbar-resize-handle {
@@ -65,7 +73,19 @@
 .rpr-toolbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+}
+
+.rpr-mode-select {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 13px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  background: #fff;
+  color: #303133;
+  cursor: pointer;
+  outline: none;
 }
 
 .rpr-radio-group {

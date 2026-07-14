@@ -1,0 +1,42 @@
+[
+  {
+    "number": 1,
+    "category": "改进",
+    "task": "组件树抽屉支持多目标分组",
+    "steps": [
+      {
+        "step": "ReviewTool.jsx 组件树状态/渲染改为从 selection.selectedElements 构建每组目标各自的 componentTree",
+        "completed": false
+      },
+      {
+        "step": "DOM 树叶子节点（选中目标本身）增加 rpr-tree-node-selected 高亮与已选中标识",
+        "completed": false
+      },
+      {
+        "step": "style.css 增加选中节点样式",
+        "completed": false
+      }
+    ],
+    "passes": false
+  },
+  {
+    "number": 2,
+    "category": "验证",
+    "task": "端到端验证",
+    "steps": [
+      {
+        "step": "新增 e2e 用例：多选 2 个元素后组件树抽屉展示 2 组目标",
+        "completed": false
+      },
+      {
+        "step": "新增 e2e 用例：每组 DOM 树叶子节点带高亮/已选中标记",
+        "completed": false
+      },
+      {
+        "step": "既有 e2e 全量回归通过",
+        "completed": false
+      }
+    ],
+    "passes": false
+  }
+]

@@ -1,0 +1,86 @@
+[
+  {
+    "number": 1,
+    "category": "UI 调整",
+    "task": "将「取消选择」按钮移出下拉菜单到工具栏",
+    "steps": [
+      {
+        "step": "在 ReviewTool.jsx 工具栏右侧添加「取消选择」按钮",
+        "completed": true
+      },
+      {
+        "step": "按钮状态跟随 selectedCount，未选中时禁用",
+        "completed": true
+      },
+      {
+        "step": "从 moreMenuItems 中移除「取消选择」项",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 2,
+    "category": "UI 调整",
+    "task": "将模式切换由 Radio Tabs 改为下拉选择",
+    "steps": [
+      {
+        "step": "将工具栏左侧 Radio.Group 替换为 Select 组件",
+        "completed": true
+      },
+      {
+        "step": "选项映射 element→选中元素、viewport→框定视图",
+        "completed": true
+      },
+      {
+        "step": "保持 mode 状态切换逻辑不变",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 3,
+    "category": "样式",
+    "task": "调整工具栏样式适配新布局",
+    "steps": [
+      {
+        "step": "调整工具栏左右区域间距，防止按钮溢出",
+        "completed": true
+      },
+      {
+        "step": "下拉选择框高度与按钮对齐，保持视觉一致",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 4,
+    "category": "验证",
+    "task": "端到端验证工具栏新布局",
+    "steps": [
+      {
+        "step": "断言工具栏存在「取消选择」按钮",
+        "completed": true
+      },
+      {
+        "step": "断言未选中时禁用、选中后启用",
+        "completed": true
+      },
+      {
+        "step": "断言模式切换下拉存在且可切换",
+        "completed": true
+      },
+      {
+        "step": "断言「更多」下拉中不再包含「取消选择」",
+        "completed": true
+      },
+      {
+        "step": "既有 53 项 e2e 全量回归通过",
+        "completed": true
+      }
+    ],
+    "passes": true
+  }
+]

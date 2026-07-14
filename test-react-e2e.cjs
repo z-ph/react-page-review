@@ -20,6 +20,16 @@ async function openMoreMenu(page) {
 async function clickMoreItem(page, label) {
   await openMoreMenu(page)
   await page.locator('.ant-dropdown-menu-item', { hasText: label }).click()
+  await page.waitForTimeout(200)
+}
+
+async function selectMode(page, label) {
+  const value = label === '框定视图' ? 'viewport' : 'element'
+  await page.locator('[data-testid="rpr-mode-select"]').selectOption(value)
+}
+
+async function clickClearSelection(page) {
+  await page.locator('.rpr-review-toolbar button', { hasText: '取消选择' }).click()
 }
 
 async function waitBlob(page, minCount) {
@@ -87,9 +97,23 @@ async function waitBlob(page, minCount) {
     Array.from(new Set(els.flatMap((el) => Array.from(el.classList))))
   )
   const badClasses = toolbarClasses.filter(
-    (c) => !c.startsWith('rpr-') && !c.startsWith('ant-') && !c.startsWith('css-')
+    (c) => !c.startsWith('rpr-') && !c.startsWith('ant-') && !c.startsWith('anticon') && !c.startsWith('css-')
   )
   check('自定义类名均带 rpr-/ant- 前缀', badClasses.length === 0, badClasses.join(','))
+
+  // 3.1 工具栏新布局：取消选择按钮外露、模式切换为下拉、更多菜单不含取消选择
+  const clearBtn = page.locator('.rpr-review-toolbar button', { hasText: '取消选择' })
+  check('工具栏存在「取消选择」按钮', await clearBtn.isVisible().catch(() => false))
+  const clearBtnDisabled = await clearBtn.isDisabled()
+  check('未选中时「取消选择」按钮禁用', clearBtnDisabled)
+  const modeSelect = page.locator('[data-testid="rpr-mode-select"]')
+  check('工具栏存在模式切换下拉', await modeSelect.isVisible().catch(() => false))
+  await openMoreMenu(page)
+  const moreHasClear = await page.locator('.ant-dropdown-menu-item', { hasText: '取消选择' }).count() > 0
+  check('「更多」下拉中不再包含「取消选择」', !moreHasClear)
+  // 关闭更多菜单（点击空白处）
+  await page.mouse.click(10, 10)
+  await page.waitForTimeout(200)
 
   // 4. 元素模式：点击卡片选中
   await page.click('.test-card >> nth=0')
@@ -102,6 +126,10 @@ async function waitBlob(page, minCount) {
   await page.waitForFunction(() => document.querySelectorAll('.rpr-selected-box').length === 2)
   selectedCount = await page.locator('.rpr-selected-box').count()
   check('Ctrl/Cmd 多选第二个元素', selectedCount === 2, `数量 ${selectedCount}`)
+
+  // 5.1 选中元素后「取消选择」按钮变为可用
+  const clearBtnEnabled = await page.locator('.rpr-review-toolbar button', { hasText: '取消选择' }).isEnabled()
+  check('选中元素后「取消选择」按钮可用', clearBtnEnabled)
 
   // 6. 选中后不应自动弹出评审弹窗
   const modalAutoOpen = await page.locator('.rpr-review-modal').isVisible().catch(() => false)
@@ -116,7 +144,35 @@ async function waitBlob(page, minCount) {
   const targetTags = await page.locator('.rpr-review-modal .rpr-target-tag').count()
   check('评审弹窗显示 2 个选中目标', targetTags === 2, `数量 ${targetTags}`)
 
-  // 9. 填写表单并保存
+  // 8.1 弹窗打开后锁定页面滚动
+  const bodyScrollLocked = await page.evaluate(() =>
+    document.body.classList.contains('rpr-scroll-locked')
+  )
+  check('评审弹窗打开后 body 带滚动锁定类', bodyScrollLocked)
+  const bodyOverflowHidden = await page.evaluate(() => {
+    return window.getComputedStyle(document.body).overflow === 'hidden'
+  })
+  check('评审弹窗打开后 body overflow 为 hidden', bodyOverflowHidden)
+
+  // 8.2 弹窗打开后焦点进入标题输入框
+  const activeElementIsTitle = await page.evaluate(() => {
+    const input = document.querySelector('.rpr-review-modal input[type="text"]')
+    return input === document.activeElement
+  })
+  check('评审弹窗打开后标题输入框获得焦点', activeElementIsTitle)
+
+  // 8.3 取消弹窗后焦点回到「评审」按钮
+  await page.keyboard.press('Escape')
+  await page.waitForSelector('.rpr-review-modal', { state: 'hidden' })
+  const focusBackToReviewBtn = await page.evaluate(() => {
+    const btn = document.querySelector('.rpr-review-toolbar .ant-badge button')
+    return btn === document.activeElement
+  })
+  check('取消评审弹窗后焦点回到「评审」按钮', focusBackToReviewBtn)
+
+  // 9. 重新打开弹窗并保存
+  await page.locator('.rpr-review-toolbar .ant-badge button').click()
+  await page.waitForSelector('.rpr-review-modal', { state: 'visible' })
   await page.getByPlaceholder('例如：按钮样式不统一').fill('E2E 测试标题')
   await page.getByPlaceholder('描述问题现象、影响和改进建议').fill('E2E 测试建议内容')
   await page.getByRole('button', { name: /保存评审/ }).click()
@@ -165,12 +221,22 @@ async function waitBlob(page, minCount) {
   } catch {}
   check('导出 JSON 可下载且内容正确', jsonOk, `${jsonBlob.bytes.length} bytes`)
   check('导出触发真实浏览器下载事件', !!jsonDownload, jsonDownload?.suggestedFilename() || '未触发')
+  // 12.1 JSON 中两个 target 均含 locators
+  const jsonTwoTargetsWithLocators = mine && mine.targets.length === 2 &&
+    mine.targets[0].locators &&
+    mine.targets[1].locators
+  check('JSON 中两个 target 均含 locators', jsonTwoTargetsWithLocators)
 
   // 13. 导出 Markdown
   await clickMoreItem(page, '导出 Markdown')
   const mdBlob = await waitBlob(page, 2)
   const mdText = Buffer.from(mdBlob.bytes).toString('utf8')
   check('导出 Markdown 可下载且内容正确', mdText.includes('E2E 测试标题'), `${mdBlob.bytes.length} bytes`)
+  // 13.1 多元素评审的 Markdown 为每个目标输出定位信息
+  const mdTarget1Locator = mdText.includes('目标 1（元素）') && mdText.includes('CSS Selector')
+  const mdTarget2Locator = mdText.includes('目标 2（元素）') && mdText.includes('XPath')
+  check('Markdown 含第一个元素的定位信息', mdTarget1Locator)
+  check('Markdown 含第二个元素的定位信息', mdTarget2Locator)
 
   // 14. 导出 ZIP（PK 头校验）
   await clickMoreItem(page, '导出 ZIP')
@@ -209,14 +275,16 @@ async function waitBlob(page, minCount) {
     document.body.appendChild(spacer)
   })
   // 框定视图模式框选一个区域
-  await page.locator('.rpr-review-toolbar').getByText('框定视图', { exact: true }).click()
+  await selectMode(page, '框定视图')
+  const selectedModeValue = await page.locator('[data-testid="rpr-mode-select"]').inputValue()
+  check('模式切换为框定视图', selectedModeValue === 'viewport', `当前选中: ${selectedModeValue}`)
   await page.mouse.move(200, 500)
   await page.mouse.down()
   await page.mouse.move(400, 650, { steps: 5 })
   await page.mouse.up()
   await page.waitForSelector('.rpr-drag-rect.rpr-selected-box', { state: 'visible' })
   // 切回元素模式选中一个元素（两种高亮共存）
-  await page.locator('.rpr-review-toolbar').getByText('选择元素', { exact: true }).click()
+  await selectMode(page, '选择元素')
   await page.click('.test-card >> nth=4')
   await page.waitForSelector('.rpr-highlight-box.rpr-selected-box', { state: 'visible' })
 
@@ -256,7 +324,7 @@ async function waitBlob(page, minCount) {
   )
 
   // 框选模式下滚动：元素高亮也应跟随
-  await page.locator('.rpr-review-toolbar').getByText('框定视图', { exact: true }).click()
+  await selectMode(page, '框定视图')
   await page.evaluate(() => window.scrollBy(0, 300))
   await waitRectTop('.rpr-highlight-box.rpr-selected-box', elAfter.y - 300)
   const boxAfter2 = await rectOf('.rpr-drag-rect.rpr-selected-box')
@@ -277,11 +345,11 @@ async function waitBlob(page, minCount) {
     window.scrollTo(0, 0)
     document.getElementById('e2e-scroll-spacer')?.remove()
   })
-  await clickMoreItem(page, '取消选择')
-  await page.locator('.rpr-review-toolbar').getByText('选择元素', { exact: true }).click()
+  await clickClearSelection(page)
+  await selectMode(page, '选择元素')
 
   // 19. 框选/调整期间不产生原生文字选区
-  await page.locator('.rpr-review-toolbar').getByText('框定视图', { exact: true }).click()
+  await selectMode(page, '框定视图')
   const cardRect = await page.locator('.test-card >> nth=0').boundingBox()
   // 在含文字的卡片上拖拽创建框选
   await page.mouse.move(cardRect.x + 8, cardRect.y + 8)
@@ -311,8 +379,8 @@ async function waitBlob(page, minCount) {
   check('调整结束后 body userSelect 已恢复', userSelectAfterResize !== 'none', userSelectAfterResize || '（空）')
 
   // 清理：清空框选、切回元素模式
-  await clickMoreItem(page, '取消选择')
-  await page.locator('.rpr-review-toolbar').getByText('选择元素', { exact: true }).click()
+  await clickClearSelection(page)
+  await selectMode(page, '选择元素')
 
   // 20. 截图期间隐藏评审 UI（导出截图纯净）
   await page.click('.test-card >> nth=0')

@@ -1,0 +1,82 @@
+[
+  {
+    "number": 1,
+    "category": "修复",
+    "task": "实现页面滚动锁定",
+    "steps": [
+      {
+        "step": "在 ReviewTool.jsx 中监听 formVisible / treeVisible / listVisible / confirm 状态",
+        "completed": true
+      },
+      {
+        "step": "任一弹窗/抽屉打开时给 document.body 添加 rpr-scroll-locked 类",
+        "completed": true
+      },
+      {
+        "step": "所有弹窗/抽屉关闭后移除 rpr-scroll-locked 类",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 2,
+    "category": "修复",
+    "task": "实现弹窗焦点管理",
+    "steps": [
+      {
+        "step": "评审弹窗打开后将焦点移动到标题输入框",
+        "completed": true
+      },
+      {
+        "step": "确认弹窗打开后将焦点移动到确定按钮",
+        "completed": true
+      },
+      {
+        "step": "关闭弹窗前记录触发元素，关闭后将焦点恢复到该元素",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 3,
+    "category": "样式",
+    "task": "补充滚动锁定样式",
+    "steps": [
+      {
+        "step": "在 style.css 中为 body.rpr-scroll-locked 添加 overflow:hidden",
+        "completed": true
+      },
+      {
+        "step": "确保抽屉和确认弹窗打开时同样生效",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 4,
+    "category": "验证",
+    "task": "端到端验证弹窗滚动与焦点行为",
+    "steps": [
+      {
+        "step": "新增 e2e：打开评审弹窗后 body overflow 为 hidden",
+        "completed": true
+      },
+      {
+        "step": "新增 e2e：评审弹窗内标题输入框为 activeElement",
+        "completed": true
+      },
+      {
+        "step": "新增 e2e：取消弹窗后焦点回到「评审」按钮",
+        "completed": true
+      },
+      {
+        "step": "既有 53 项 e2e 全量回归通过",
+        "completed": true
+      }
+    ],
+    "passes": true
+  }
+]

@@ -1,0 +1,62 @@
+[
+  {
+    "number": 1,
+    "category": "修复",
+    "task": "按目标输出定位信息到 Markdown 报告",
+    "steps": [
+      {
+        "step": "修改 useReview.js 的 buildMarkdown，遍历 item.targets 时输出每个 element 目标的 locators",
+        "completed": true
+      },
+      {
+        "step": "输出字段包括 cssSelector、xpath、aria role、accessibleName、data-testid",
+        "completed": true
+      },
+      {
+        "step": "保留顶层 item.locators 作为无 per-target locators 时的回退",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 2,
+    "category": "增强",
+    "task": "增强弹窗内目标标签的可读性",
+    "steps": [
+      {
+        "step": "在 ReviewTool.jsx 中为每个 rpr-target-tag 添加 title，显示 selector 或 rect",
+        "completed": true
+      },
+      {
+        "step": "确保过长 selector 显示省略号但 hover 可查看完整内容",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 3,
+    "category": "验证",
+    "task": "端到端验证多元素定位信息导出",
+    "steps": [
+      {
+        "step": "新增 e2e：选中两个不同元素保存评审",
+        "completed": true
+      },
+      {
+        "step": "断言导出的 Markdown 包含两个元素的定位信息",
+        "completed": true
+      },
+      {
+        "step": "断言导出的 JSON 中 targets[0].locators 与 targets[1].locators 均存在",
+        "completed": true
+      },
+      {
+        "step": "既有 53 项 e2e 全量回归通过",
+        "completed": true
+      }
+    ],
+    "passes": true
+  }
+]
