@@ -3290,18 +3290,21 @@ function z({ active: n, mode: a, onIgnoreTarget: o }) {
 		}));
 	}, []);
 	t(() => {
-		if (g) return m({
+		if (n) return m({
 			x: window.scrollX,
 			y: window.scrollY
-		}), document.addEventListener("mousemove", v), document.addEventListener("mouseout", y), document.addEventListener("click", b, !0), window.addEventListener("scroll", x, !0), () => {
-			document.removeEventListener("mousemove", v), document.removeEventListener("mouseout", y), document.removeEventListener("click", b, !0), window.removeEventListener("scroll", x, !0);
+		}), window.addEventListener("scroll", x, !0), () => {
+			window.removeEventListener("scroll", x, !0);
+		};
+	}, [n, x]), t(() => {
+		if (g) return document.addEventListener("mousemove", v), document.addEventListener("mouseout", y), document.addEventListener("click", b, !0), () => {
+			document.removeEventListener("mousemove", v), document.removeEventListener("mouseout", y), document.removeEventListener("click", b, !0);
 		};
 	}, [
 		g,
 		v,
 		y,
-		b,
-		x
+		b
 	]);
 	let S = e(() => {
 		f([]);
@@ -3493,16 +3496,22 @@ function H({ active: n, mode: a, onIgnoreTarget: o, onBoxCreate: s }) {
 		h(e), g.current = e;
 	}, []);
 	return t(() => {
-		if (!(!_ && !f)) return document.addEventListener("mousedown", k), document.addEventListener("mousemove", A), document.addEventListener("mouseup", j), window.addEventListener("scroll", M, !0), () => {
-			document.removeEventListener("mousedown", k), document.removeEventListener("mousemove", A), document.removeEventListener("mouseup", j), window.removeEventListener("scroll", M, !0);
+		if (n) return h({
+			x: window.scrollX,
+			y: window.scrollY
+		}), window.addEventListener("scroll", M, !0), () => {
+			window.removeEventListener("scroll", M, !0);
+		};
+	}, [n, M]), t(() => {
+		if (!(!_ && !f)) return document.addEventListener("mousedown", k), document.addEventListener("mousemove", A), document.addEventListener("mouseup", j), () => {
+			document.removeEventListener("mousedown", k), document.removeEventListener("mousemove", A), document.removeEventListener("mouseup", j);
 		};
 	}, [
 		_,
 		f,
 		k,
 		A,
-		j,
-		M
+		j
 	]), {
 		selectedBoxes: c,
 		setSelectedBoxes: l,
@@ -4476,45 +4485,52 @@ function It({ active: b = !1, pagePath: x = "", pageName: S = "", storageKey: C 
 		Y.selectedElements,
 		Te
 	]), Ae = e(async () => {
-		let e = [];
-		for (let t of fe) if (t === $.TARGETS) for (let t of J.targets) {
-			let n = null;
-			if (t.type === "element" && t.elementRect) {
-				let e = document.querySelector(t.selector);
-				e && (n = await pt(e));
-			} else t.type === "viewport" && t.viewportRect && (n = await gt(t.viewportRect));
-			if (n) {
-				let r = ft(t.type), i = null;
-				w && (i = await yt(n, r, w)), e.push({
-					type: t.type,
-					filename: r,
-					data: i ? void 0 : n,
-					url: i || void 0
-				});
+		let e = [], t = fe.length > 0 ? document.querySelector(".rpr-review-overlay") : null, n = t ? t.style.display : "";
+		t && (t.style.display = "none", await new Promise((e) => {
+			requestAnimationFrame(() => requestAnimationFrame(() => e()));
+		}));
+		try {
+			for (let t of fe) if (t === $.TARGETS) for (let t of J.targets) {
+				let n = null;
+				if (t.type === "element" && t.elementRect) {
+					let e = document.querySelector(t.selector);
+					e && (n = await pt(e));
+				} else t.type === "viewport" && t.viewportRect && (n = await gt(t.viewportRect));
+				if (n) {
+					let r = ft(t.type), i = null;
+					w && (i = await yt(n, r, w)), e.push({
+						type: t.type,
+						filename: r,
+						data: i ? void 0 : n,
+						url: i || void 0
+					});
+				}
 			}
-		}
-		else if (t === $.VIEWPORT) {
-			let t = await mt();
-			if (t) {
-				let n = ft($.VIEWPORT), r = null;
-				w && (r = await yt(t, n, w)), e.push({
-					type: $.VIEWPORT,
-					filename: n,
-					data: r ? void 0 : t,
-					url: r || void 0
-				});
+			else if (t === $.VIEWPORT) {
+				let t = await mt();
+				if (t) {
+					let n = ft($.VIEWPORT), r = null;
+					w && (r = await yt(t, n, w)), e.push({
+						type: $.VIEWPORT,
+						filename: n,
+						data: r ? void 0 : t,
+						url: r || void 0
+					});
+				}
+			} else if (t === $.FULL_PAGE) {
+				let t = await ht();
+				if (t) {
+					let n = ft($.FULL_PAGE), r = null;
+					w && (r = await yt(t, n, w)), e.push({
+						type: $.FULL_PAGE,
+						filename: n,
+						data: r ? void 0 : t,
+						url: r || void 0
+					});
+				}
 			}
-		} else if (t === $.FULL_PAGE) {
-			let t = await ht();
-			if (t) {
-				let n = ft($.FULL_PAGE), r = null;
-				w && (r = await yt(t, n, w)), e.push({
-					type: $.FULL_PAGE,
-					filename: n,
-					data: r ? void 0 : t,
-					url: r || void 0
-				});
-			}
+		} finally {
+			t && (t.style.display = n);
 		}
 		return e;
 	}, [

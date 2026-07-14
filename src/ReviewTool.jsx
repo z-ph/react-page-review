@@ -248,40 +248,54 @@ export default function ReviewTool({
 
   const captureScreenshots = useCallback(async () => {
     const screenshots = []
-    for (const type of selectedScreenshots) {
-      if (type === SCREENSHOT_TYPES.TARGETS) {
-        for (const target of form.targets) {
-          let dataUrl = null
-          if (target.type === 'element' && target.elementRect) {
-            const el = document.querySelector(target.selector)
-            if (el) dataUrl = await captureElement(el)
-          } else if (target.type === 'viewport' && target.viewportRect) {
-            dataUrl = await captureBox(target.viewportRect)
+    // 截取期间隐藏评审工具自身 UI（工具栏/弹窗/高亮均在 overlay 内），结束后恢复
+    const overlay =
+      selectedScreenshots.length > 0 ? document.querySelector('.rpr-review-overlay') : null
+    const prevDisplay = overlay ? overlay.style.display : ''
+    if (overlay) {
+      overlay.style.display = 'none'
+      await new Promise(resolve => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
+    }
+    try {
+      for (const type of selectedScreenshots) {
+        if (type === SCREENSHOT_TYPES.TARGETS) {
+          for (const target of form.targets) {
+            let dataUrl = null
+            if (target.type === 'element' && target.elementRect) {
+              const el = document.querySelector(target.selector)
+              if (el) dataUrl = await captureElement(el)
+            } else if (target.type === 'viewport' && target.viewportRect) {
+              dataUrl = await captureBox(target.viewportRect)
+            }
+            if (dataUrl) {
+              const filename = generateScreenshotFilename(target.type)
+              let url = null
+              if (imageUpload) url = await uploadScreenshot(dataUrl, filename, imageUpload)
+              screenshots.push({ type: target.type, filename, data: url ? undefined : dataUrl, url: url || undefined })
+            }
           }
+        } else if (type === SCREENSHOT_TYPES.VIEWPORT) {
+          const dataUrl = await captureViewport()
           if (dataUrl) {
-            const filename = generateScreenshotFilename(target.type)
+            const filename = generateScreenshotFilename(SCREENSHOT_TYPES.VIEWPORT)
             let url = null
             if (imageUpload) url = await uploadScreenshot(dataUrl, filename, imageUpload)
-            screenshots.push({ type: target.type, filename, data: url ? undefined : dataUrl, url: url || undefined })
+            screenshots.push({ type: SCREENSHOT_TYPES.VIEWPORT, filename, data: url ? undefined : dataUrl, url: url || undefined })
+          }
+        } else if (type === SCREENSHOT_TYPES.FULL_PAGE) {
+          const dataUrl = await captureFullPage()
+          if (dataUrl) {
+            const filename = generateScreenshotFilename(SCREENSHOT_TYPES.FULL_PAGE)
+            let url = null
+            if (imageUpload) url = await uploadScreenshot(dataUrl, filename, imageUpload)
+            screenshots.push({ type: SCREENSHOT_TYPES.FULL_PAGE, filename, data: url ? undefined : dataUrl, url: url || undefined })
           }
         }
-      } else if (type === SCREENSHOT_TYPES.VIEWPORT) {
-        const dataUrl = await captureViewport()
-        if (dataUrl) {
-          const filename = generateScreenshotFilename(SCREENSHOT_TYPES.VIEWPORT)
-          let url = null
-          if (imageUpload) url = await uploadScreenshot(dataUrl, filename, imageUpload)
-          screenshots.push({ type: SCREENSHOT_TYPES.VIEWPORT, filename, data: url ? undefined : dataUrl, url: url || undefined })
-        }
-      } else if (type === SCREENSHOT_TYPES.FULL_PAGE) {
-        const dataUrl = await captureFullPage()
-        if (dataUrl) {
-          const filename = generateScreenshotFilename(SCREENSHOT_TYPES.FULL_PAGE)
-          let url = null
-          if (imageUpload) url = await uploadScreenshot(dataUrl, filename, imageUpload)
-          screenshots.push({ type: SCREENSHOT_TYPES.FULL_PAGE, filename, data: url ? undefined : dataUrl, url: url || undefined })
-        }
       }
+    } finally {
+      if (overlay) overlay.style.display = prevDisplay
     }
     return screenshots
   }, [selectedScreenshots, form.targets, imageUpload])

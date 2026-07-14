@@ -104,20 +104,28 @@ export function useElementSelection({ active, mode, onIgnoreTarget }) {
     }))
   }, [])
 
+  // 滚动跟随与模式解耦：评审激活即挂载，保证非当前模式的高亮也能随滚动刷新
+  useEffect(() => {
+    if (!active) return
+    setScrollPos({ x: window.scrollX, y: window.scrollY })
+    window.addEventListener('scroll', onScroll, true)
+    return () => {
+      window.removeEventListener('scroll', onScroll, true)
+    }
+  }, [active, onScroll])
+
+  // 交互监听仍按元素模式门控
   useEffect(() => {
     if (!isEnabled) return
-    setScrollPos({ x: window.scrollX, y: window.scrollY })
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('mouseout', onMouseOut)
     document.addEventListener('click', onClick, true)
-    window.addEventListener('scroll', onScroll, true)
     return () => {
       document.removeEventListener('mousemove', onMouseMove)
       document.removeEventListener('mouseout', onMouseOut)
       document.removeEventListener('click', onClick, true)
-      window.removeEventListener('scroll', onScroll, true)
     }
-  }, [isEnabled, onMouseMove, onMouseOut, onClick, onScroll])
+  }, [isEnabled, onMouseMove, onMouseOut, onClick])
 
   const clearSelectedElements = useCallback(() => {
     setSelectedElements([])
