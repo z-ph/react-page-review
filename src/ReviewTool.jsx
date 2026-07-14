@@ -248,12 +248,23 @@ export default function ReviewTool({
 
   const captureScreenshots = useCallback(async () => {
     const screenshots = []
-    // 截取期间隐藏评审工具自身 UI（工具栏/弹窗/高亮均在 overlay 内），结束后恢复
-    const overlay =
-      selectedScreenshots.length > 0 ? document.querySelector('.rpr-review-overlay') : null
-    const prevDisplay = overlay ? overlay.style.display : ''
-    if (overlay) {
-      overlay.style.display = 'none'
+    // 截取期间只隐藏评审栏和弹窗/抽屉根节点，保留高亮框供截图使用
+    const uiSelectors = [
+      '.rpr-review-toolbar',
+      '.rpr-review-modal-root',
+      '.rpr-review-drawer-root',
+      '.rpr-review-confirm-root'
+    ]
+    const hiddenEls = []
+    if (selectedScreenshots.length > 0) {
+      uiSelectors.forEach(sel => {
+        document.querySelectorAll(sel).forEach(el => {
+          if (el.style.display !== 'none') {
+            hiddenEls.push({ el, prev: el.style.display })
+            el.style.display = 'none'
+          }
+        })
+      })
       await new Promise(resolve => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
       })
@@ -295,7 +306,7 @@ export default function ReviewTool({
         }
       }
     } finally {
-      if (overlay) overlay.style.display = prevDisplay
+      hiddenEls.forEach(({ el, prev }) => { el.style.display = prev })
     }
     return screenshots
   }, [selectedScreenshots, form.targets, imageUpload])
@@ -608,6 +619,7 @@ export default function ReviewTool({
         style={modalStyle}
         className="rpr-review-modal"
         wrapClassName="rpr-review-modal-wrap"
+        rootClassName="rpr-review-modal-root"
         zIndex={10002}
         getContainer={false}
         closeIcon={<span className="rpr-review-modal-close">×</span>}
@@ -695,6 +707,7 @@ export default function ReviewTool({
         zIndex={10003}
         getContainer={false}
         className="rpr-review-drawer"
+        rootClassName="rpr-review-drawer-root"
       >
         {!componentTree ? (
           <Empty description="先选择一个元素以查看组件树" />
@@ -752,6 +765,7 @@ export default function ReviewTool({
         zIndex={10003}
         getContainer={false}
         className="rpr-review-drawer"
+        rootClassName="rpr-review-drawer-root"
         extra={(
           <Dropdown
             menu={{
@@ -817,6 +831,8 @@ export default function ReviewTool({
         zIndex={10004}
         getContainer={false}
         width={360}
+        className="rpr-review-confirm-modal"
+        rootClassName="rpr-review-confirm-root"
       >
         <p>{confirm?.message}</p>
       </Modal>

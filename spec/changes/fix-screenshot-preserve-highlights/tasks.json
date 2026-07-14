@@ -1,0 +1,66 @@
+[
+  {
+    "number": 1,
+    "category": "修复",
+    "task": "为弹窗与抽屉增加可隐藏的根节点类名",
+    "steps": [
+      {
+        "step": "评审表单 Modal 增加 rootClassName='rpr-review-modal-root'",
+        "completed": true
+      },
+      {
+        "step": "组件树 Drawer 与评审列表 Drawer 增加 rootClassName='rpr-review-drawer-root'",
+        "completed": true
+      },
+      {
+        "step": "确认弹窗 Modal 增加 rootClassName='rpr-review-confirm-root'",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 2,
+    "category": "修复",
+    "task": "截图期间精确隐藏评审栏和弹窗/抽屉，保留高亮框",
+    "steps": [
+      {
+        "step": "captureScreenshots 改为通过选择器隐藏 .rpr-review-toolbar、.rpr-review-modal-root、.rpr-review-drawer-root、.rpr-review-confirm-root",
+        "completed": true
+      },
+      {
+        "step": "不再隐藏 .rpr-review-overlay，确保 .rpr-highlight-box / .rpr-drag-rect 保留在截图中",
+        "completed": true
+      },
+      {
+        "step": "在 finally 中恢复被隐藏元素的 display",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 3,
+    "category": "验证",
+    "task": "端到端验证截图行为",
+    "steps": [
+      {
+        "step": "更新 e2e：断言截图期间工具栏曾隐藏",
+        "completed": true
+      },
+      {
+        "step": "更新 e2e：断言截图期间 overlay 未被隐藏（高亮保留）",
+        "completed": true
+      },
+      {
+        "step": "更新 e2e：断言截图完成后工具栏恢复显示",
+        "completed": true
+      },
+      {
+        "step": "全量 e2e 回归通过",
+        "completed": true
+      }
+    ],
+    "passes": true
+  }
+]

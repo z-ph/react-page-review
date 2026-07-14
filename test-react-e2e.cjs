@@ -53,13 +53,16 @@ async function waitBlob(page, minCount) {
       }
       return orig(blob)
     }
-    // 记录评审 overlay 的 display 变化（验证截图期间被隐藏）
-    window.__overlayDisplayLog = []
+    // 记录评审工具栏与 overlay 的 display 变化（验证截图期间隐藏工具栏但保留 overlay/高亮）
+    window.__uiDisplayLog = { toolbar: [], overlay: [] }
     new MutationObserver((mutations) => {
       for (const m of mutations) {
         const t = m.target
-        if (t && t.classList && t.classList.contains('rpr-review-overlay')) {
-          window.__overlayDisplayLog.push(t.style.display || '')
+        if (!t || !t.classList) continue
+        if (t.classList.contains('rpr-review-toolbar')) {
+          window.__uiDisplayLog.toolbar.push(t.style.display || '')
+        } else if (t.classList.contains('rpr-review-overlay')) {
+          window.__uiDisplayLog.overlay.push(t.style.display || '')
         }
       }
     }).observe(document, {
@@ -333,12 +336,16 @@ async function waitBlob(page, minCount) {
   await page.getByPlaceholder('例如：按钮样式不统一').fill('E2E 截图评审')
   await page.getByPlaceholder('描述问题现象、影响和改进建议').fill('E2E 截图建议')
   await page.getByRole('button', { name: /保存评审/ }).click()
-  // 断言：截图生成期间 overlay 处于 display:none（MutationObserver 已记录）
-  await page.waitForFunction(() => (window.__overlayDisplayLog || []).includes('none'), null, {
+  // 断言：截图生成期间工具栏被隐藏，但 overlay（含高亮框）未被隐藏
+  await page.waitForFunction(() => (window.__uiDisplayLog.toolbar || []).includes('none'), null, {
     timeout: 15000
   })
-  check('保存评审截图期间 overlay 曾隐藏（display:none）', true)
-  // 截图期间 overlay（含弹窗）被隐藏，弹窗消失不等于保存完成；以记录落盘为完成信号
+  check('保存评审截图期间工具栏曾隐藏（display:none）', true)
+  const overlayWasHidden = await page.evaluate(() =>
+    (window.__uiDisplayLog.overlay || []).includes('none')
+  )
+  check('保存评审截图期间 overlay 未隐藏（高亮保留）', !overlayWasHidden)
+  // 弹窗消失不等于保存完成；以记录落盘为完成信号
   const savedWithShot = await page
     .waitForFunction(
       () => {
@@ -360,11 +367,11 @@ async function waitBlob(page, minCount) {
     .then(() => true)
     .catch(() => false)
   check('评审记录落盘且含完整页面截图数据', savedWithShot)
-  const overlayRestored = await page.evaluate(() => {
-    const el = document.querySelector('.rpr-review-overlay')
+  const toolbarRestored = await page.evaluate(() => {
+    const el = document.querySelector('.rpr-review-toolbar')
     return el ? el.style.display !== 'none' : false
   })
-  check('截图完成后 overlay 显示已恢复', overlayRestored)
+  check('截图完成后工具栏显示已恢复', toolbarRestored)
 
   // 导出 ZIP 并解码其中的完整页面 PNG（PNG 头 + IHDR 尺寸断言）
   await clickMoreItem(page, '导出 ZIP')
