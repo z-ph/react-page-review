@@ -1,0 +1,66 @@
+[
+  {
+    "number": 1,
+    "category": "修复",
+    "task": "重构截图底层：基于文档坐标捕获与裁剪",
+    "steps": [
+      {
+        "step": "captureViewport 改为先展开文档，再裁剪到 [scrollX, scrollY, innerWidth, innerHeight]",
+        "completed": true
+      },
+      {
+        "step": "captureFullPage 改为裁剪到 [0, 0, scrollWidth, scrollHeight]",
+        "completed": true
+      },
+      {
+        "step": "captureBox 保持现有行为，但支持传入 highlights 手动绘制",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 2,
+    "category": "修复",
+    "task": "隐藏评审 overlay 并在截图上手动绘制高亮框",
+    "steps": [
+      {
+        "step": "captureScreenshots 隐藏整个 .rpr-review-overlay",
+        "completed": true
+      },
+      {
+        "step": "screenshot.js 增加 cropDataUrl 绘制高亮矩形，支持 element 与 viewport 目标",
+        "completed": true
+      },
+      {
+        "step": "恢复 overlay 显示",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 3,
+    "category": "验证",
+    "task": "端到端验证滚动与高亮对齐",
+    "steps": [
+      {
+        "step": "新增 e2e：滚动后保存完整页面截图，断言 PNG 高度大于视口高度",
+        "completed": true
+      },
+      {
+        "step": "新增 e2e：滚动后保存当前视口截图，断言 PNG 高度等于视口高度",
+        "completed": true
+      },
+      {
+        "step": "新增 e2e：滚动后完整页面截图中高亮框与目标对齐",
+        "completed": true
+      },
+      {
+        "step": "既有 40 项 e2e 全量回归通过",
+        "completed": true
+      }
+    ],
+    "passes": true
+  }
+]

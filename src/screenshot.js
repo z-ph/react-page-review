@@ -30,49 +30,32 @@ export async function captureElement(el, options = {}) {
 }
 
 export async function captureViewport(options = {}) {
-  const target = document.documentElement
-  return captureElement(target, {
+  const cropRect = {
+    x: window.scrollX,
+    y: window.scrollY,
     width: window.innerWidth,
-    height: window.innerHeight,
-    style: {
-      width: `${window.innerWidth}px`,
-      height: `${window.innerHeight}px`,
-      overflow: 'hidden'
-    },
-    ...options
-  })
+    height: window.innerHeight
+  }
+  return captureDocumentRegion(cropRect, options)
 }
 
 export async function captureFullPage(options = {}) {
   const target = document.documentElement
-  const originalOverflow = target.style.overflow
-  const originalWidth = target.style.width
-  const originalHeight = target.style.height
-
-  try {
-    target.style.overflow = 'visible'
-    target.style.width = 'auto'
-    target.style.height = 'auto'
-
-    const dataUrl = await toPng(target, {
-      pixelRatio: options.pixelRatio || window.devicePixelRatio || 1,
-      cacheBust: true,
-      ...options
-    })
-    return dataUrl
-  } catch (err) {
-    console.error('captureFullPage failed:', err)
-    return null
-  } finally {
-    target.style.overflow = originalOverflow
-    target.style.width = originalWidth
-    target.style.height = originalHeight
+  const cropRect = {
+    x: 0,
+    y: 0,
+    width: target.scrollWidth,
+    height: target.scrollHeight
   }
+  return captureDocumentRegion(cropRect, options)
 }
 
 export async function captureBox(rect, options = {}) {
   if (!rect || rect.width < 1 || rect.height < 1) return null
+  return captureDocumentRegion(rect, options)
+}
 
+async function captureDocumentRegion(cropRect, options = {}) {
   const target = document.documentElement
   const originalOverflow = target.style.overflow
   const originalWidth = target.style.width
@@ -89,9 +72,9 @@ export async function captureBox(rect, options = {}) {
       ...options
     })
 
-    return cropDataUrl(dataUrl, rect)
+    return cropDataUrl(dataUrl, cropRect, options.highlights)
   } catch (err) {
-    console.error('captureBox failed:', err)
+    console.error('captureDocumentRegion failed:', err)
     return null
   } finally {
     target.style.overflow = originalOverflow
@@ -100,26 +83,39 @@ export async function captureBox(rect, options = {}) {
   }
 }
 
-function cropDataUrl(dataUrl, rect) {
+function cropDataUrl(dataUrl, cropRect, highlights = []) {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.onload = () => {
-      const canvas = document.createElement('canvas')
       const scale = window.devicePixelRatio || 1
-      canvas.width = Math.round(rect.width * scale)
-      canvas.height = Math.round(rect.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(cropRect.width * scale)
+      canvas.height = Math.round(cropRect.height * scale)
       const ctx = canvas.getContext('2d')
       ctx.drawImage(
         img,
-        rect.x * scale,
-        rect.y * scale,
-        rect.width * scale,
-        rect.height * scale,
+        cropRect.x * scale,
+        cropRect.y * scale,
+        cropRect.width * scale,
+        cropRect.height * scale,
         0,
         0,
         canvas.width,
         canvas.height
       )
+
+      highlights.forEach(hl => {
+        const x = (hl.rect.x - cropRect.x) * scale
+        const y = (hl.rect.y - cropRect.y) * scale
+        const w = hl.rect.width * scale
+        const h = hl.rect.height * scale
+        ctx.fillStyle = 'rgba(245, 108, 108, 0.12)'
+        ctx.fillRect(x, y, w, h)
+        ctx.strokeStyle = '#f56c6c'
+        ctx.lineWidth = 2 * scale
+        ctx.strokeRect(x, y, w, h)
+      })
+
       resolve(canvas.toDataURL('image/png'))
     }
     img.onerror = reject

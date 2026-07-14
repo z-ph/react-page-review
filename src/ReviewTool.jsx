@@ -248,27 +248,23 @@ export default function ReviewTool({
 
   const captureScreenshots = useCallback(async () => {
     const screenshots = []
-    // 截取期间只隐藏评审栏和弹窗/抽屉根节点，保留高亮框供截图使用
-    const uiSelectors = [
-      '.rpr-review-toolbar',
-      '.rpr-review-modal-root',
-      '.rpr-review-drawer-root',
-      '.rpr-review-confirm-root'
-    ]
-    const hiddenEls = []
-    if (selectedScreenshots.length > 0) {
-      uiSelectors.forEach(sel => {
-        document.querySelectorAll(sel).forEach(el => {
-          if (el.style.display !== 'none') {
-            hiddenEls.push({ el, prev: el.style.display })
-            el.style.display = 'none'
-          }
-        })
-      })
+    // 截取期间隐藏整个评审 overlay，高亮框由截图模块根据目标 rect 手动绘制
+    const overlay =
+      selectedScreenshots.length > 0 ? document.querySelector('.rpr-review-overlay') : null
+    const prevDisplay = overlay ? overlay.style.display : ''
+    if (overlay) {
+      overlay.style.display = 'none'
       await new Promise(resolve => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
       })
     }
+
+    const highlights = form.targets
+      .map(target => ({
+        rect: target.type === 'element' ? target.elementRect : target.viewportRect
+      }))
+      .filter(h => h.rect)
+
     try {
       for (const type of selectedScreenshots) {
         if (type === SCREENSHOT_TYPES.TARGETS) {
@@ -278,7 +274,7 @@ export default function ReviewTool({
               const el = document.querySelector(target.selector)
               if (el) dataUrl = await captureElement(el)
             } else if (target.type === 'viewport' && target.viewportRect) {
-              dataUrl = await captureBox(target.viewportRect)
+              dataUrl = await captureBox(target.viewportRect, { highlights })
             }
             if (dataUrl) {
               const filename = generateScreenshotFilename(target.type)
@@ -288,7 +284,7 @@ export default function ReviewTool({
             }
           }
         } else if (type === SCREENSHOT_TYPES.VIEWPORT) {
-          const dataUrl = await captureViewport()
+          const dataUrl = await captureViewport({ highlights })
           if (dataUrl) {
             const filename = generateScreenshotFilename(SCREENSHOT_TYPES.VIEWPORT)
             let url = null
@@ -296,7 +292,7 @@ export default function ReviewTool({
             screenshots.push({ type: SCREENSHOT_TYPES.VIEWPORT, filename, data: url ? undefined : dataUrl, url: url || undefined })
           }
         } else if (type === SCREENSHOT_TYPES.FULL_PAGE) {
-          const dataUrl = await captureFullPage()
+          const dataUrl = await captureFullPage({ highlights })
           if (dataUrl) {
             const filename = generateScreenshotFilename(SCREENSHOT_TYPES.FULL_PAGE)
             let url = null
@@ -306,7 +302,7 @@ export default function ReviewTool({
         }
       }
     } finally {
-      hiddenEls.forEach(({ el, prev }) => { el.style.display = prev })
+      if (overlay) overlay.style.display = prevDisplay
     }
     return screenshots
   }, [selectedScreenshots, form.targets, imageUpload])

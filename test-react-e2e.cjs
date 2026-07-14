@@ -53,16 +53,13 @@ async function waitBlob(page, minCount) {
       }
       return orig(blob)
     }
-    // 记录评审工具栏与 overlay 的 display 变化（验证截图期间隐藏工具栏但保留 overlay/高亮）
-    window.__uiDisplayLog = { toolbar: [], overlay: [] }
+    // 记录评审 overlay 的 display 变化（验证截图期间隐藏 overlay，高亮由截图模块手动绘制）
+    window.__uiDisplayLog = []
     new MutationObserver((mutations) => {
       for (const m of mutations) {
         const t = m.target
-        if (!t || !t.classList) continue
-        if (t.classList.contains('rpr-review-toolbar')) {
-          window.__uiDisplayLog.toolbar.push(t.style.display || '')
-        } else if (t.classList.contains('rpr-review-overlay')) {
-          window.__uiDisplayLog.overlay.push(t.style.display || '')
+        if (t && t.classList && t.classList.contains('rpr-review-overlay')) {
+          window.__uiDisplayLog.push(t.style.display || '')
         }
       }
     }).observe(document, {
@@ -336,15 +333,11 @@ async function waitBlob(page, minCount) {
   await page.getByPlaceholder('例如：按钮样式不统一').fill('E2E 截图评审')
   await page.getByPlaceholder('描述问题现象、影响和改进建议').fill('E2E 截图建议')
   await page.getByRole('button', { name: /保存评审/ }).click()
-  // 断言：截图生成期间工具栏被隐藏，但 overlay（含高亮框）未被隐藏
-  await page.waitForFunction(() => (window.__uiDisplayLog.toolbar || []).includes('none'), null, {
+  // 断言：截图生成期间 overlay 被隐藏，高亮由截图模块手动绘制
+  await page.waitForFunction(() => (window.__uiDisplayLog || []).includes('none'), null, {
     timeout: 15000
   })
-  check('保存评审截图期间工具栏曾隐藏（display:none）', true)
-  const overlayWasHidden = await page.evaluate(() =>
-    (window.__uiDisplayLog.overlay || []).includes('none')
-  )
-  check('保存评审截图期间 overlay 未隐藏（高亮保留）', !overlayWasHidden)
+  check('保存评审截图期间 overlay 曾隐藏（display:none）', true)
   // 弹窗消失不等于保存完成；以记录落盘为完成信号
   const savedWithShot = await page
     .waitForFunction(
@@ -367,11 +360,11 @@ async function waitBlob(page, minCount) {
     .then(() => true)
     .catch(() => false)
   check('评审记录落盘且含完整页面截图数据', savedWithShot)
-  const toolbarRestored = await page.evaluate(() => {
-    const el = document.querySelector('.rpr-review-toolbar')
+  const overlayRestored = await page.evaluate(() => {
+    const el = document.querySelector('.rpr-review-overlay')
     return el ? el.style.display !== 'none' : false
   })
-  check('截图完成后工具栏显示已恢复', toolbarRestored)
+  check('截图完成后 overlay 显示已恢复', overlayRestored)
 
   // 导出 ZIP 并解码其中的完整页面 PNG（PNG 头 + IHDR 尺寸断言）
   await clickMoreItem(page, '导出 ZIP')
@@ -393,7 +386,125 @@ async function waitBlob(page, minCount) {
   }
   check('完整页面截图为合法 PNG 且尺寸有效', pngOk, pngInfo)
 
-  // 21. 无页面级 JS 错误
+  // 21. 滚动场景下的截图：保留滚动位置且高亮与目标对齐
+  await page.evaluate(() => {
+    const spacer = document.createElement('div')
+    spacer.id = 'rpr-test-spacer'
+    spacer.style.height = '1200px'
+    spacer.style.background = '#f0f0f0'
+    document.body.appendChild(spacer)
+  })
+  await page.waitForTimeout(100)
+  await page.locator('.test-card >> nth=3').scrollIntoViewIfNeeded()
+  await page.click('.test-card >> nth=3')
+  await page.waitForSelector('.rpr-selected-box', { state: 'visible' })
+  await page.locator('.rpr-review-toolbar .ant-badge button').click()
+  await page.waitForSelector('.rpr-review-modal', { state: 'visible' })
+  await page.locator('.rpr-review-modal .ant-checkbox-wrapper', { hasText: '当前视口' }).click()
+  await page.locator('.rpr-review-modal .ant-checkbox-wrapper', { hasText: '完整页面' }).click()
+  await page.getByPlaceholder('例如：按钮样式不统一').fill('E2E 滚动截图评审')
+  await page.getByPlaceholder('描述问题现象、影响和改进建议').fill('E2E 滚动截图建议')
+  await page.getByRole('button', { name: /保存评审/ }).click()
+
+  const scrollReview = await page.waitForFunction(
+    () => {
+      const raw = localStorage.getItem('page-reviews')
+      if (!raw) return null
+      const list = JSON.parse(raw)
+      const reviews = Array.isArray(list) ? list : Object.values(list).flat()
+      return reviews.find((x) => x.title === 'E2E 滚动截图评审') || null
+    },
+    null,
+    { timeout: 20000 }
+  )
+  const scrollRecord = await scrollReview.jsonValue()
+  const scrollTarget = scrollRecord.targets[0]
+  const expectedRect = scrollTarget?.elementRect || scrollTarget?.viewportRect
+  const fpShot = scrollRecord.screenshots.find((s) => s.type === 'fullpage')
+  const vpShot = scrollRecord.screenshots.find((s) => s.type === 'viewport')
+
+  const shotInfo = await page.evaluate(({ fpUrl, vpUrl }) => {
+    return new Promise((resolve) => {
+      const load = (url, cb) => {
+        const img = new Image()
+        img.onload = () => cb(img)
+        img.src = url
+      }
+      load(fpUrl, (fpImg) => {
+        load(vpUrl, (vpImg) => {
+          resolve({
+            fullPageWidth: fpImg.width,
+            fullPageHeight: fpImg.height,
+            viewportWidth: vpImg.width,
+            viewportHeight: vpImg.height
+          })
+        })
+      })
+    })
+  }, { fpUrl: fpShot.data, vpUrl: vpShot.data })
+
+  check('滚动后完整页面截图高度大于视口高度', shotInfo.fullPageHeight > 800, `${shotInfo.fullPageHeight}`)
+  check('滚动后当前视口截图高度等于视口高度', shotInfo.viewportHeight === 800, `${shotInfo.viewportHeight}`)
+
+  const highlightCheck = await page.evaluate(({ url, docX, docY, width, height }) => {
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width
+        canvas.height = img.height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0)
+        const scale = img.width / document.documentElement.scrollWidth
+        const x = Math.round((docX + width / 2) * scale)
+        const expectedYTop = Math.round(docY * scale)
+        const expectedYBottom = Math.round((docY + height) * scale)
+        const isRed = (r, g, b) => r > 200 && g < 150 && b < 150
+
+        // 扫描中轴线上的红色像素，收集所有红色区间
+        const redRanges = []
+        let rangeStart = -1
+        for (let y = 0; y < canvas.height; y++) {
+          const pixel = ctx.getImageData(x, y, 1, 1).data
+          if (isRed(pixel[0], pixel[1], pixel[2])) {
+            if (rangeStart === -1) rangeStart = y
+          } else if (rangeStart !== -1) {
+            redRanges.push([rangeStart, y - 1])
+            rangeStart = -1
+          }
+        }
+        if (rangeStart !== -1) redRanges.push([rangeStart, canvas.height - 1])
+
+        // 验证存在分别靠近期望顶部和底部的红色区间（高亮框上下边框）
+        const topMatch = redRanges.find((r) => Math.abs(r[0] - expectedYTop) <= 2)
+        const bottomMatch = redRanges.find((r) => Math.abs(r[1] - expectedYBottom) <= 2)
+
+        resolve({
+          expectedYTop,
+          expectedYBottom,
+          actualYTop: topMatch ? topMatch[0] : -1,
+          actualYBottom: bottomMatch ? bottomMatch[1] : -1,
+          redRanges: redRanges.slice(0, 5),
+          scale,
+          aligned: !!topMatch && !!bottomMatch
+        })
+      }
+      img.src = url
+    })
+  }, { url: fpShot.data, docX: expectedRect.x, docY: expectedRect.y, width: expectedRect.width, height: expectedRect.height })
+
+  check(
+    '滚动后完整页面截图中高亮框与目标对齐',
+    highlightCheck.aligned,
+    `expected=${highlightCheck.expectedYTop}~${highlightCheck.expectedYBottom}, actual=${highlightCheck.actualYTop}~${highlightCheck.actualYBottom}, ranges=${JSON.stringify(highlightCheck.redRanges)}, scale=${highlightCheck.scale}`
+  )
+
+  await page.evaluate(() => {
+    const spacer = document.getElementById('rpr-test-spacer')
+    if (spacer) spacer.remove()
+  })
+
+  // 22. 无页面级 JS 错误
   check('无页面 JS 错误', pageErrors.length === 0, pageErrors.join(' | '))
 
   await browser.close()
