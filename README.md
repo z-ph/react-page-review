@@ -1,6 +1,6 @@
 # react-page-review
 
-A React page review tool for collecting UI feedback through element selection, viewport boxing, screenshots, localStorage persistence, and Markdown / JSON / ZIP export. Zero UI framework dependency.
+A React page review tool for collecting UI feedback through element selection, viewport boxing, screenshots, localStorage persistence, and Markdown / JSON / ZIP export. Core hooks have zero UI-framework dependency; the default `ReviewTool` UI is built on Ant Design as an optional peer dependency.
 
 ## Features
 
@@ -61,7 +61,7 @@ function App() {
 | `storageKey` | `string` | `'page-reviews'` | localStorage key |
 | `enableComponentTree` | `boolean` | `true` | Show component tree button |
 | `enableZipExport` | `boolean` | `true` | Enable ZIP export |
-| `imageUploadUrl` | `string` | - | Image upload endpoint |
+| `imageUpload` | `(blob: Blob, filename: string) => Promise<string>` | - | Custom screenshot upload function returning image URL |
 | `onActiveChange` | `(active: boolean) => void` | - | Callback when overlay opens/closes |
 | `onAdd` / `onUpdate` / `onDelete` / `onClear` / `onExport` | `function` | - | Event callbacks |
 

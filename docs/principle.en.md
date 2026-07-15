@@ -54,7 +54,7 @@ const onMouseMove = useCallback((e) => {
 }, [mode, formVisible, resizingBoxId, getSafeTarget])
 ```
 
-`getSafeTarget` filters out events whose target is inside `.review-overlay`, `.dropdown-menu`, `.modal`, or `.drawer`, preventing the review UI itself from being selected.
+`getSafeTarget` delegates to the `onIgnoreTarget` callback. In `ReviewTool`, this ignores targets inside `.rpr-review-overlay`, preventing the review UI itself from being selected.
 
 ### Click Selection
 
@@ -189,42 +189,114 @@ Calls `toPng` directly on the passed element, defaulting to `window.devicePixelR
 captureElement(el, { pixelRatio, ...options })
 ```
 
-### Viewport Screenshot `captureViewport`
+### Unified Document-Coordinate Capture `captureDocumentRegion`
 
-Captures `document.documentElement` and forces the dimensions to the current viewport while hiding scrollbars:
+Viewport, full-page, and box screenshots all follow the same pipeline: expand the whole document, capture a large image, then crop to the target region.
 
 ```js
-{
+async function captureDocumentRegion(cropRect, options = {}) {
+  const target = document.documentElement
+  const originalOverflow = target.style.overflow
+  const originalWidth = target.style.width
+  const originalHeight = target.style.height
+
+  try {
+    target.style.overflow = 'visible'
+    target.style.width = 'auto'
+    target.style.height = 'auto'
+
+    const dataUrl = await toPng(target, {
+      pixelRatio: options.pixelRatio || window.devicePixelRatio || 1,
+      cacheBust: true,
+      ...options
+    })
+
+    return cropDataUrl(dataUrl, cropRect, options.highlights)
+  } finally {
+    target.style.overflow = originalOverflow
+    target.style.width = originalWidth
+    target.style.height = originalHeight
+  }
+}
+```
+
+### Viewport Screenshot `captureViewport`
+
+Crops to the currently visible area at the scroll position:
+
+```js
+const cropRect = {
+  x: window.scrollX,
+  y: window.scrollY,
   width: window.innerWidth,
-  height: window.innerHeight,
-  style: { width: '...', height: '...', overflow: 'hidden' }
+  height: window.innerHeight
 }
 ```
 
 ### Full Page Screenshot `captureFullPage`
 
-Temporarily sets `document.documentElement` `overflow` to `visible` and width/height to `auto` to expand all scrollable content, then restores the original styles after capturing.
+Crops to the entire document:
+
+```js
+const cropRect = {
+  x: 0,
+  y: 0,
+  width: document.documentElement.scrollWidth,
+  height: document.documentElement.scrollHeight
+}
+```
 
 ### Box Screenshot `captureBox`
 
-First captures the full page, then crops the desired region with a Canvas:
+Crops to the box rectangle:
 
 ```js
-function cropDataUrl(dataUrl, rect) {
-  const scale = window.devicePixelRatio || 1
-  canvas.width = Math.round(rect.width * scale)
-  canvas.height = Math.round(rect.height * scale)
-  ctx.drawImage(
-    img,
-    rect.x * scale,
-    rect.y * scale,
-    rect.width * scale,
-    rect.height * scale,
-    0, 0, canvas.width, canvas.height
-  )
-  return canvas.toDataURL('image/png')
+captureBox(rect, { highlights })
+```
+
+### Canvas Crop and Highlight Drawing `cropDataUrl`
+
+After capturing the expanded document, `cropDataUrl` crops the desired region and manually draws highlight rectangles based on `form.targets` document coordinates. This avoids coordinate misalignment caused by the `position: fixed` review overlay.
+
+```js
+function cropDataUrl(dataUrl, cropRect, highlights = []) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const scale = window.devicePixelRatio || 1
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(cropRect.width * scale)
+      canvas.height = Math.round(cropRect.height * scale)
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(
+        img,
+        cropRect.x * scale,
+        cropRect.y * scale,
+        cropRect.width * scale,
+        cropRect.height * scale,
+        0, 0, canvas.width, canvas.height
+      )
+
+      highlights.forEach(hl => {
+        const x = (hl.rect.x - cropRect.x) * scale
+        const y = (hl.rect.y - cropRect.y) * scale
+        const w = hl.rect.width * scale
+        const h = hl.rect.height * scale
+        ctx.fillStyle = 'rgba(245, 108, 108, 0.12)'
+        ctx.fillRect(x, y, w, h)
+        ctx.strokeStyle = '#f56c6c'
+        ctx.lineWidth = 2 * scale
+        ctx.strokeRect(x, y, w, h)
+      })
+
+      resolve(canvas.toDataURL('image/png'))
+    }
+    img.src = dataUrl
+  })
 }
 ```
+
+Before capturing, `ReviewTool.captureScreenshots` temporarily hides `.rpr-review-overlay` so the toolbar, modal, and drawers do not appear in the screenshot.
 
 ### Upload
 
@@ -352,13 +424,13 @@ These locators are saved with the review record for later automated regression t
 
 ### Toolbar
 
-- **Drag**: can only be initiated on `.toolbar-title` or `.review-toolbar`.
-- **Resize**: the bottom-right `.toolbar-resize-handle` supports southeast resizing with a minimum width of 400px and minimum height of 48px.
+- **Drag**: can only be initiated on `.rpr-review-toolbar-title` or `.rpr-review-toolbar`.
+- **Resize**: the bottom-right `.rpr-toolbar-resize-handle` supports southeast resizing with a minimum width of 400px and minimum height of 48px.
 
 ### Form Modal
 
-- **Drag**: can only be initiated on `.modal-header`.
-- **Resize**: the bottom-right `.modal-resize-handle` with a minimum width of 360px and minimum height of 300px.
+- **Drag**: can only be initiated on `.rpr-review-modal-header`.
+- **Resize**: the bottom-right `.rpr-modal-resize-handle` with a minimum width of 360px and minimum height of 300px.
 
 ### Box Selections
 

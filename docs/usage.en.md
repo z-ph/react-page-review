@@ -68,7 +68,7 @@ The simplest integration is to mount `ReviewTool` and control review mode with `
 
 ```jsx
 import { useState } from 'react'
-import ReviewTool from 'react-page-review'
+import { ReviewTool } from 'react-page-review'
 function App() {
   const [active, setActive] = useState(false)
 
@@ -456,7 +456,7 @@ React button class names differ slightly from the Vue version. Common ones are `
 ```jsx
 // App.jsx
 import { useState } from 'react'
-import ReviewTool from 'react-page-review'
+import { ReviewTool } from 'react-page-review'
 function App() {
   const [active, setActive] = useState(false)
 

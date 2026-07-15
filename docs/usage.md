@@ -68,7 +68,7 @@ import 'react-page-review/style.css'
 
 ```jsx
 import { useState } from 'react'
-import ReviewTool from 'react-page-review'
+import { ReviewTool } from 'react-page-review'
 function App() {
   const [active, setActive] = useState(false)
 
@@ -455,7 +455,7 @@ React 版的按钮类名与 Vue 版略有不同，常见类名为 `button.rpr-pr
 ```jsx
 // App.jsx
 import { useState } from 'react'
-import ReviewTool from 'react-page-review'
+import { ReviewTool } from 'react-page-review'
 function App() {
   const [active, setActive] = useState(false)
 

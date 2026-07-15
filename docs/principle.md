@@ -54,7 +54,7 @@ const onMouseMove = useCallback((e) => {
 }, [mode, formVisible, resizingBoxId, getSafeTarget])
 ```
 
-`getSafeTarget` 会过滤掉事件目标位于 `.review-overlay`、`.dropdown-menu`、`.modal` 或 `.drawer` 内部的情况，防止评审 UI 自身被选中。
+`getSafeTarget` 通过 `onIgnoreTarget` 回调过滤事件目标。`ReviewTool` 中的实现会忽略位于 `.rpr-review-overlay` 内部的目标，防止评审 UI 自身被选中。
 
 ### 点击选择
 
@@ -189,42 +189,114 @@ export const SCREENSHOT_TYPES = {
 captureElement(el, { pixelRatio, ...options })
 ```
 
-### 视口截图 `captureViewport`
+### 统一文档坐标捕获 `captureDocumentRegion`
 
-截取 `document.documentElement`，并强制宽高为当前视口尺寸，同时隐藏滚动条：
+视口、完整页面与框选截图都基于同一流程：先展开整个文档捕获大图，再按目标区域裁剪。
 
 ```js
-{
+async function captureDocumentRegion(cropRect, options = {}) {
+  const target = document.documentElement
+  const originalOverflow = target.style.overflow
+  const originalWidth = target.style.width
+  const originalHeight = target.style.height
+
+  try {
+    target.style.overflow = 'visible'
+    target.style.width = 'auto'
+    target.style.height = 'auto'
+
+    const dataUrl = await toPng(target, {
+      pixelRatio: options.pixelRatio || window.devicePixelRatio || 1,
+      cacheBust: true,
+      ...options
+    })
+
+    return cropDataUrl(dataUrl, cropRect, options.highlights)
+  } finally {
+    target.style.overflow = originalOverflow
+    target.style.width = originalWidth
+    target.style.height = originalHeight
+  }
+}
+```
+
+### 视口截图 `captureViewport`
+
+裁剪到当前滚动位置对应的可见区域：
+
+```js
+const cropRect = {
+  x: window.scrollX,
+  y: window.scrollY,
   width: window.innerWidth,
-  height: window.innerHeight,
-  style: { width: '...', height: '...', overflow: 'hidden' }
+  height: window.innerHeight
 }
 ```
 
 ### 完整页面截图 `captureFullPage`
 
-临时将 `document.documentElement` 的 `overflow` 设为 `visible`，宽高设为 `auto`，以展开全部滚动内容，截图完成后恢复原始样式。
+裁剪到整个文档范围：
+
+```js
+const cropRect = {
+  x: 0,
+  y: 0,
+  width: document.documentElement.scrollWidth,
+  height: document.documentElement.scrollHeight
+}
+```
 
 ### 框选截图 `captureBox`
 
-先调用 `captureFullPage` 获取整页截图，再用 Canvas 裁剪出指定区域：
+裁剪到框选矩形：
 
 ```js
-function cropDataUrl(dataUrl, rect) {
-  const scale = window.devicePixelRatio || 1
-  canvas.width = Math.round(rect.width * scale)
-  canvas.height = Math.round(rect.height * scale)
-  ctx.drawImage(
-    img,
-    rect.x * scale,
-    rect.y * scale,
-    rect.width * scale,
-    rect.height * scale,
-    0, 0, canvas.width, canvas.height
-  )
-  return canvas.toDataURL('image/png')
+captureBox(rect, { highlights })
+```
+
+### Canvas 裁剪与高亮绘制 `cropDataUrl`
+
+截完大图后，用 Canvas 按目标区域裁剪，并根据 `form.targets` 的文档坐标手动绘制高亮框，避免 `position: fixed` 的评审 overlay 在整页截图里坐标错位。
+
+```js
+function cropDataUrl(dataUrl, cropRect, highlights = []) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const scale = window.devicePixelRatio || 1
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(cropRect.width * scale)
+      canvas.height = Math.round(cropRect.height * scale)
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(
+        img,
+        cropRect.x * scale,
+        cropRect.y * scale,
+        cropRect.width * scale,
+        cropRect.height * scale,
+        0, 0, canvas.width, canvas.height
+      )
+
+      highlights.forEach(hl => {
+        const x = (hl.rect.x - cropRect.x) * scale
+        const y = (hl.rect.y - cropRect.y) * scale
+        const w = hl.rect.width * scale
+        const h = hl.rect.height * scale
+        ctx.fillStyle = 'rgba(245, 108, 108, 0.12)'
+        ctx.fillRect(x, y, w, h)
+        ctx.strokeStyle = '#f56c6c'
+        ctx.lineWidth = 2 * scale
+        ctx.strokeRect(x, y, w, h)
+      })
+
+      resolve(canvas.toDataURL('image/png'))
+    }
+    img.src = dataUrl
+  })
 }
 ```
+
+截图前，`ReviewTool.captureScreenshots` 会把 `.rpr-review-overlay` 临时隐藏，确保截图里只保留目标高亮、不带工具栏和弹窗。
 
 ### 上传
 
@@ -352,13 +424,13 @@ export function migrateRecord(record) {
 
 ### 工具栏
 
-- 拖拽：只能在 `.toolbar-title` 或 `.review-toolbar` 区域按下并拖动。
-- 缩放：右下角 `.toolbar-resize-handle` 支持东南方向缩放，最小宽度 400px，最小高度 48px。
+- 拖拽：只能在 `.rpr-review-toolbar-title` 或 `.rpr-review-toolbar` 区域按下并拖动。
+- 缩放：右下角 `.rpr-toolbar-resize-handle` 支持东南方向缩放，最小宽度 400px，最小高度 48px。
 
 ### 表单弹窗
 
-- 拖拽：只能在 `.modal-header` 区域按下。
-- 缩放：右下角 `.modal-resize-handle`，最小宽度 360px，最小高度 300px。
+- 拖拽：只能在 `.rpr-review-modal-header` 区域按下。
+- 缩放：右下角 `.rpr-modal-resize-handle`，最小宽度 360px，最小高度 300px。
 
 ### 框选区域
 

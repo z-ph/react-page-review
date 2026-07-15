@@ -1,6 +1,6 @@
 # react-page-review
 
-一个 React 页面评审工具，支持元素选择、框定视图、截图、localStorage 持久化以及 Markdown / JSON / ZIP 导出。零 UI 框架依赖。
+一个 React 页面评审工具，支持元素选择、框定视图、截图、localStorage 持久化以及 Markdown / JSON / ZIP 导出。核心 hooks 零 UI 框架依赖；默认 `ReviewTool` UI 基于 Ant Design 作为可选 peer dependency。
 
 ## 特性
 
@@ -61,7 +61,7 @@ function App() {
 | `storageKey` | `string` | `'page-reviews'` | localStorage 键名 |
 | `enableComponentTree` | `boolean` | `true` | 是否显示组件树按钮 |
 | `enableZipExport` | `boolean` | `true` | 是否启用 ZIP 导出 |
-| `imageUploadUrl` | `string` | - | 截图上传图床地址 |
+| `imageUpload` | `(blob: Blob, filename: string) => Promise<string>` | - | 自定义截图上传函数，返回图片 URL |
 | `onActiveChange` | `(active: boolean) => void` | - | 浮层打开/关闭回调 |
 | `onAdd` / `onUpdate` / `onDelete` / `onClear` / `onExport` | `function` | - | 事件回调 |
 
