@@ -127,8 +127,9 @@ export function usePageReview(options = {}) {
     for (const review of data.reviews) {
       for (const screenshot of (review.screenshots || [])) {
         if (screenshot.data && !screenshot.url) {
-          const base64 = screenshot.data.replace(/^data:image\/png;base64,/, '')
-          imagesFolder.file(screenshot.filename, base64, { base64: true })
+          // 兼容任意 data URL 前缀（png/jpeg/svg 等）以及截图失败产生的 `data:,`
+          const base64 = screenshot.data.replace(/^data:[^,]*,/, '')
+          if (base64) imagesFolder.file(screenshot.filename, base64, { base64: true })
         }
       }
     }

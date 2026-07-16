@@ -5,6 +5,11 @@ All notable changes to `react-page-review` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.10] - 2026-07-16
+
+### Fixed
+- ZIP export no longer fails with "Invalid base64 input, it looks like a data url." when a review contains a screenshot whose data URL is not PNG-prefixed (e.g. legacy non-PNG records or the empty `data:,` produced by a failed capture). Any `data:...,` prefix is now stripped and empty payloads are skipped.
+
 ## [0.7.9] - 2026-07-14
 
 ### Fixed
