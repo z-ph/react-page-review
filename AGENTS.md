@@ -73,6 +73,20 @@ BASE_URL=http://localhost:<port> NODE_PATH=$(npm root -g) node test-react-e2e.cj
 
 任何涉及行为、UI、API、数据格式、截图、导出、事件监听、样式作用域的变更，**不允许跳过提案**。
 
+## 发版流程
+
+**推送 main 本身不发版；推送 `v*` tag 才会触发 GitHub Actions 自动发布到 npm**（`.github/workflows/publish.yml`，`pnpm publish --access public --no-git-checks`，凭据为仓库 secret `NPM_TOKEN`）。
+
+标准步骤：
+
+1. 升 `package.json` 的 `version`（语义化版本），同步更新 `CHANGELOG.md`。
+2. 本地 `pnpm build` + e2e 全绿后再发（workflow 只做构建和发布，不跑 e2e）。
+3. 提交并推送 main：`git push origin main`。
+4. 打 tag 并推送：`git tag v<x.y.z> && git push origin v<x.y.z>`。tag 必须是 `v` + 版本号，且与 `package.json` 的 `version` 一致。
+5. 验证发版：`gh run list --limit 3` 确认 "Publish to npm" 成功；`npm view react-page-review version` 确认新版本已上 registry。
+
+也可以在 Actions 页面用 `workflow_dispatch` 手动触发同一发布流程。
+
 ## 参考
 
 - 示例提案：`spec/changes/fix-highlight-scroll-and-screenshot-cleanup/`
