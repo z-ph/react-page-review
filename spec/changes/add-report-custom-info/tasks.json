@@ -1,0 +1,74 @@
+[
+  {
+    "number": 1,
+    "category": "阶段 1：核心实现",
+    "task": "usePageReview 支持 reportInfo 注入",
+    "steps": [
+      {
+        "step": "options 新增 reportInfo（对象或函数），resolveReportInfo 惰性求值",
+        "completed": true
+      },
+      {
+        "step": "buildReportData 合并自定义字段，保留字段 exportTime/total/reviews 不可覆盖",
+        "completed": true
+      },
+      {
+        "step": "buildMarkdown 头部输出自定义字段行（跳过保留键与空值，对象 JSON 序列化）",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 2,
+    "category": "阶段 2：组件透传",
+    "task": "ReviewTool 新增 reportInfo prop",
+    "steps": [
+      {
+        "step": "ReviewTool 接收 reportInfo 并透传给 usePageReview",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 3,
+    "category": "阶段 3：示例与 e2e",
+    "task": "示例应用接入 + e2e 断言",
+    "steps": [
+      {
+        "step": "examples/react-test-app 传入 reportInfo（含保留键碰撞用例）",
+        "completed": true
+      },
+      {
+        "step": "test-react-e2e.cjs 新增 JSON/Markdown 自定义字段断言",
+        "completed": true
+      }
+    ],
+    "passes": true
+  },
+  {
+    "number": 4,
+    "category": "阶段 4：文档与构建验证",
+    "task": "文档更新 + 构建 + e2e 全量通过",
+    "steps": [
+      {
+        "step": "README / README.zh-CN 文档化 reportInfo",
+        "completed": true
+      },
+      {
+        "step": "CHANGELOG 记录、版本号升级",
+        "completed": true
+      },
+      {
+        "step": "pnpm build 成功并刷新 dist/",
+        "completed": true
+      },
+      {
+        "step": "test-react-e2e.cjs 全量通过（含新断言）",
+        "completed": true
+      }
+    ],
+    "passes": true
+  }
+]

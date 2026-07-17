@@ -61,6 +61,7 @@ function App() {
 | `storageKey` | `string` | `'page-reviews'` | localStorage 键名 |
 | `enableComponentTree` | `boolean` | `true` | 是否显示组件树按钮 |
 | `enableZipExport` | `boolean` | `true` | 是否启用 ZIP 导出 |
+| `reportInfo` | `object \| () => object` | - | 自定义注入字段，合并进导出报告：JSON/ZIP 为顶层字段，Markdown 为头部 `key：value` 行。保留键 `exportTime`/`total`/`reviews` 不可被覆盖；`null`/`undefined` 值不进 Markdown |
 | `imageUpload` | `(blob: Blob, filename: string) => Promise<string>` | - | 自定义截图上传函数，返回图片 URL |
 | `onActiveChange` | `(active: boolean) => void` | - | 浮层打开/关闭回调 |
 | `onAdd` / `onUpdate` / `onDelete` / `onClear` / `onExport` | `function` | - | 事件回调 |
@@ -71,7 +72,8 @@ function App() {
 import { usePageReview } from 'react-page-review'
 
 const { reviews, addReview, exportToJSON, exportToZIP } = usePageReview({
-  storageKey: 'my-reviews'
+  storageKey: 'my-reviews',
+  reportInfo: { version: '1.2.3', env: 'demo' } // 或 () => ({ version: readVersion() })
 })
 ```
 

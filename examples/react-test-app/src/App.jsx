@@ -29,7 +29,13 @@ function App() {
         ))}
       </div>
 
-      <ReviewTool active={active} onActiveChange={setActive} pagePath="/test" />
+      {/* reportInfo：演示自定义注入字段；total 为保留键，注入不生效，用于 e2e 验证保护逻辑 */}
+      <ReviewTool
+        active={active}
+        onActiveChange={setActive}
+        pagePath="/test"
+        reportInfo={{ version: '9.9.9-e2e', channel: 'e2e', total: 999, build: null }}
+      />
     </div>
   )
 }

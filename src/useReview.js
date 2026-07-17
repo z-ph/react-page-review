@@ -6,7 +6,8 @@ export function usePageReview(options = {}) {
     storageKey = 'page-reviews',
     defaultPagePath = () => typeof window !== 'undefined'
       ? window.location.pathname + window.location.search
-      : '/'
+      : '/',
+    reportInfo
   } = options
 
   function generateId() {
@@ -84,11 +85,19 @@ export function usePageReview(options = {}) {
     saveToStorage([])
   }, [])
 
+  // reportInfo 支持对象或函数，函数在导出时惰性求值；
+  // 保留字段（exportTime/total/reviews）始终覆盖同名的自定义字段
+  const resolveReportInfo = useCallback(() => {
+    const raw = typeof reportInfo === 'function' ? reportInfo() : reportInfo
+    return raw && typeof raw === 'object' ? raw : {}
+  }, [reportInfo])
+
   const buildReportData = useCallback(() => ({
+    ...resolveReportInfo(),
     exportTime: new Date().toISOString(),
     total: reviews.length,
     reviews: reviews
-  }), [reviews])
+  }), [reviews, resolveReportInfo])
 
   const exportToJSON = useCallback(() => {
     downloadBlob(
@@ -98,12 +107,12 @@ export function usePageReview(options = {}) {
   }, [buildReportData])
 
   const exportToMarkdown = useCallback(() => {
-    const content = buildMarkdown(buildReportData())
+    const content = buildMarkdown(buildReportData(), resolveReportInfo())
     downloadBlob(
       new Blob([content], { type: 'text/markdown' }),
       `page-reviews-${formatDate()}.md`
     )
-  }, [buildReportData])
+  }, [buildReportData, resolveReportInfo])
 
   const exportToZIP = useCallback(async () => {
     const zip = new JSZip()
@@ -121,7 +130,7 @@ export function usePageReview(options = {}) {
     }
 
     zip.file('review.json', JSON.stringify(reportForZip, null, 2))
-    zip.file('review.md', buildMarkdown(reportForZip))
+    zip.file('review.md', buildMarkdown(reportForZip, resolveReportInfo()))
 
     const imagesFolder = zip.folder('images')
     for (const review of data.reviews) {
@@ -136,7 +145,7 @@ export function usePageReview(options = {}) {
 
     const blob = await zip.generateAsync({ type: 'blob' })
     downloadBlob(blob, `page-reviews-${formatDate()}.zip`)
-  }, [buildReportData])
+  }, [buildReportData, resolveReportInfo])
 
   return {
     reviews,
@@ -175,14 +184,22 @@ export function migrateRecord(record) {
   }
 }
 
-function buildMarkdown(data) {
+const REPORT_RESERVED_KEYS = ['exportTime', 'total', 'reviews']
+
+function buildMarkdown(data, reportInfo = {}) {
   const lines = [
     '# 页面评审报告',
     '',
     `导出时间：${new Date().toLocaleString()}`,
-    `评审总数：${data.total}`,
-    ''
+    `评审总数：${data.total}`
   ]
+  Object.entries(reportInfo).forEach(([key, value]) => {
+    if (REPORT_RESERVED_KEYS.includes(key)) return
+    if (value === null || value === undefined) return
+    const text = typeof value === 'object' ? JSON.stringify(value) : String(value)
+    lines.push(`${key}：${text}`)
+  })
+  lines.push('')
 
   const grouped = groupBy(data.reviews, 'pagePath')
   Object.entries(grouped).forEach(([path, list]) => {

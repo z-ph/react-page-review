@@ -226,6 +226,16 @@ async function waitBlob(page, minCount) {
     mine.targets[0].locators &&
     mine.targets[1].locators
   check('JSON 中两个 target 均含 locators', jsonTwoTargetsWithLocators)
+  // 12.2 reportInfo 自定义注入字段进入 JSON 报告；保留键 total 不可被覆盖
+  let reportInfoOk = false
+  try {
+    const parsed = JSON.parse(jsonText)
+    reportInfoOk = parsed.version === '9.9.9-e2e' &&
+      parsed.channel === 'e2e' &&
+      typeof parsed.total === 'number' &&
+      parsed.build === null
+  } catch {}
+  check('JSON 报告含自定义注入字段且保留键不被覆盖', reportInfoOk)
 
   // 13. 导出 Markdown
   await clickMoreItem(page, '导出 Markdown')
@@ -237,6 +247,12 @@ async function waitBlob(page, minCount) {
   const mdTarget2Locator = mdText.includes('目标 2（元素）') && mdText.includes('XPath')
   check('Markdown 含第一个元素的定位信息', mdTarget1Locator)
   check('Markdown 含第二个元素的定位信息', mdTarget2Locator)
+  // 13.2 Markdown 头部含 reportInfo 自定义字段；null 值与保留键不输出
+  const mdReportInfo = mdText.includes('version：9.9.9-e2e') &&
+    mdText.includes('channel：e2e') &&
+    !mdText.includes('build：') &&
+    !mdText.includes('total：999')
+  check('Markdown 头部含自定义注入字段且过滤空值/保留键', mdReportInfo)
 
   // 14. 导出 ZIP（PK 头校验）
   await clickMoreItem(page, '导出 ZIP')

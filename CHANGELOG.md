@@ -5,6 +5,11 @@ All notable changes to `react-page-review` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-07-17
+
+### Added
+- New `reportInfo` option on `usePageReview` and matching `ReviewTool` prop: host apps can inject custom fields (e.g. `version`, `env`) into exported reports. Fields appear as top-level keys in JSON/ZIP report data and as `key：value` header lines in Markdown. Accepts a plain object or a function evaluated at export time. Reserved keys (`exportTime`, `total`, `reviews`) cannot be overridden, and `null`/`undefined` values are omitted from the Markdown header.
+
 ## [0.7.10] - 2026-07-16
 
 ### Fixed

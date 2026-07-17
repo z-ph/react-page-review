@@ -37,6 +37,7 @@ export default function ReviewTool({
   imageUpload,
   enableZipExport = true,
   enableComponentTree = true,
+  reportInfo,
   onActiveChange,
   onAdd,
   onUpdate,
@@ -58,7 +59,7 @@ export default function ReviewTool({
     exportToJSON,
     exportToMarkdown,
     exportToZIP
-  } = usePageReview({ storageKey, defaultPagePath: () => resolvedPagePath })
+  } = usePageReview({ storageKey, defaultPagePath: () => resolvedPagePath, reportInfo })
 
   const pageReviews = useMemo(() => getPageReviews(resolvedPagePath), [getPageReviews, resolvedPagePath, reviews])
 

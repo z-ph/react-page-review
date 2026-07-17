@@ -61,6 +61,7 @@ function App() {
 | `storageKey` | `string` | `'page-reviews'` | localStorage key |
 | `enableComponentTree` | `boolean` | `true` | Show component tree button |
 | `enableZipExport` | `boolean` | `true` | Enable ZIP export |
+| `reportInfo` | `object \| () => object` | - | Custom fields merged into exported reports: top-level in JSON/ZIP, header lines in Markdown. Reserved keys `exportTime`/`total`/`reviews` cannot be overridden; `null`/`undefined` values are omitted from Markdown |
 | `imageUpload` | `(blob: Blob, filename: string) => Promise<string>` | - | Custom screenshot upload function returning image URL |
 | `onActiveChange` | `(active: boolean) => void` | - | Callback when overlay opens/closes |
 | `onAdd` / `onUpdate` / `onDelete` / `onClear` / `onExport` | `function` | - | Event callbacks |
@@ -71,7 +72,8 @@ function App() {
 import { usePageReview } from 'react-page-review'
 
 const { reviews, addReview, exportToJSON, exportToZIP } = usePageReview({
-  storageKey: 'my-reviews'
+  storageKey: 'my-reviews',
+  reportInfo: { version: '1.2.3', env: 'demo' } // or () => ({ version: readVersion() })
 })
 ```
 
